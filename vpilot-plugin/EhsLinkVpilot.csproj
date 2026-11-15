@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- EHS Link plugin for vPilot. vPilot runs on .NET Framework 4.7.2.
+       Build:  dotnet build -c Release   (needs vPilot installed; set VpilotDir if it isn't in C:\vPilot) -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>EhsLink.vPilot</AssemblyName>
+    <RootNamespace>EhsLink</RootNamespace>
+    <LangVersion>7.3</LangVersion>
+    <Version>0.1.0</Version>
+    <Product>EHS Link vPilot plugin</Product>
+    <Copyright>EHS Link contributors, MIT License</Copyright>
+    <VpilotDir Condition="'$(VpilotDir)' == ''">C:\vPilot</VpilotDir>
+    <!-- vPilot is 32-bit and so is its SimConnect library; AnyCPU runs fine inside it. -->
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Provided by vPilot at runtime; never copied or redistributed. -->
+    <Reference Include="RossCarlson.Vatsim.Vpilot.Plugins">
+      <HintPath>$(VpilotDir)\RossCarlson.Vatsim.Vpilot.Plugins.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- vPilot ships and loads the managed SimConnect library; never copied or redistributed. -->
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>$(VpilotDir)\Microsoft.FlightSimulator.SimConnect.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EhsTool" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
