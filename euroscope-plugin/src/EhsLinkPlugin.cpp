@@ -464,7 +464,7 @@ private:
     bool IsFiled(CFlightPlan& fp)
     {
         const char* rmk = fp.GetFlightPlanData().GetRemarks();
-        return rmk && ehs::HasEhsCode(rmk, m_codePrefix);
+        return rmk && (ehs::HasEhsCode(rmk, m_codePrefix) || ehs::HasEhsRemark(rmk));
     }
 
     size_t CountFiled()

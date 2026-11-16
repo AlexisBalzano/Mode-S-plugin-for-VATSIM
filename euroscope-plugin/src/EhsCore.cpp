@@ -202,6 +202,21 @@ bool HasEhsCode(const std::string& remarks, const std::string& prefix)
     return false;
 }
 
+bool HasEhsRemark(const std::string& remarks)
+{
+    std::string up = remarks;
+    for (auto& c : up) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    const std::string m = kRemarkMarker;
+    for (size_t at = up.find(m); at != std::string::npos; at = up.find(m, at + 1))
+    {
+        bool startOk = at == 0 || !std::isalnum(static_cast<unsigned char>(up[at - 1]));
+        size_t end = at + m.size();
+        bool endOk = end >= up.size() || !std::isalnum(static_cast<unsigned char>(up[end]));
+        if (startOk && endOk) return true;
+    }
+    return false;
+}
+
 // ===================================================================== Broker list
 
 std::vector<Broker> ParseBrokerList(const std::string& text)

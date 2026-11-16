@@ -153,16 +153,18 @@
     </div>
     <div class="note">PMDG aircraft need no extra setup. Updates for aircraft support download automatically every time you start the sim.</div>
 
-    <h3>SimBrief: show that you're equipped</h3>
+    <h3>SimBrief: show that you're equipped (optional)</h3>
     <div class="card">
+      <p style="margin-top:0">Your data reaches controllers either way. Marking your flight plan just lets them see you're
+        equipped before your data arrives. Pick <strong>one</strong> of these:</p>
       <ol class="steps">
-        <li>In SimBrief, edit your airframe and set the <strong>Mode S code</strong> to <code>FE5000</code>
-          (any code from <code>FE5000</code> to <code>FE5FFF</code> works).</li>
-        <li>Generate and file your flight plan as usual. It now contains <code>CODE/FE5000</code>,
-          and controllers see you as EHS Link equipped even before your data arrives.</li>
+        <li><strong>Remarks (keeps your real Mode S code):</strong> in SimBrief, type <code>EHSLINK</code> in the
+          <em>Remarks</em> field. Your flight plan then contains <code>RMK/EHSLINK</code>.
+          When filing directly on VATSIM, just add <code>EHSLINK</code> to the remarks.</li>
+        <li><strong>Mode S code:</strong> in your SimBrief airframe, set the <strong>Mode S code</strong> to <code>FE5000</code>
+          (any code from <code>FE5000</code> to <code>FE5FFF</code> works). The plan then contains <code>CODE/FE5000</code>.
+          <code>F…</code> codes belong to no real aircraft, so they can't be confused with one.</li>
       </ol>
-      <p class="muted" style="margin:0">If your plan doesn't show it, add <code>CODE/FE5000</code> to the remarks when filing.
-        <code>F…</code> codes belong to no real aircraft, so they can't be confused with one.</p>
     </div>
 
     <p>Which aircraft are supported? See the <a href="#aircraft">aircraft list</a>.</p>
@@ -245,7 +247,7 @@
         <tr><td>EHS altimeter setting</td><td><code>1013</code> or <code>29.92</code></td></tr>
         <tr><td>EHS current IAS / Mach</td><td>the aircraft's actual speed, about every 5 s</td></tr>
         <tr><td>EHS summary</td><td><code>240 270 M78</code></td></tr>
-        <tr><td>EHS status</td><td><code>EHS</code> equipped · <code>EHS!</code> mismatch · <code>EHS~</code> draft profile · <span class="x">ehs</span> filed but no data</td></tr>
+        <tr><td>EHS status</td><td><code>EHS</code> equipped · <code>EHS!</code> mismatch · <code>EHS~</code> draft profile · <span class="x">ehs</span> filed as equipped (<code>RMK/EHSLINK</code> or <code>CODE/FE5…</code>) but no data</td></tr>
       </table>
       <p class="muted" style="margin:0">Prefer a list? Type <code>.ehs list</code>: every equipped aircraft, your clearance next to the pilot's selection.</p>
     </div>

@@ -61,7 +61,13 @@ static void UnitTests()
     CHECK(!HasEhsCode("XCODE/FE5000", "FE5"));
     CHECK(!HasEhsCode("", "FE5"));
     CHECK(HasEhsCode("CODE/ABC123 CODE/FE5123", "FE5"));
-    CHECK(IsValidCodePrefix("FE5") && !IsValidCodePrefix("FG5") && !IsValidCodePrefix("") && !IsValidCodePrefix("FE50000"));
+    CHECK(HasEhsRemark("PBN/A1B1 DOF/261116 REG/FGSQB RMK/EHSLINK"));
+    CHECK(HasEhsRemark("RMK/TCAS EHSLINK /V/"));
+    CHECK(HasEhsRemark("rmk/ehslink"));
+    CHECK(!HasEhsRemark("RMK/TCAS EHS"));                 // the short form isn't the marker
+    CHECK(!HasEhsRemark("RMK/XEHSLINKY"));                // whole word only
+    CHECK(!HasEhsRemark(""));
+    CHECK(IsValidCodePrefix("FE5") &&!IsValidCodePrefix("FG5") && !IsValidCodePrefix("") && !IsValidCodePrefix("FE50000"));
 
     auto brokers = ParseBrokerList("a.example, b.example:8883 ; ,c;1884");
     CHECK(brokers.size() == 3 && brokers[1].port == 8883 && brokers[2].host == "c" && brokers[2].port == 1884);

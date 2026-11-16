@@ -65,6 +65,11 @@ constexpr const char* kDefaultCodePrefix = "FE5";
 bool HasEhsCode(const std::string& remarks, const std::string& prefix);
 bool IsValidCodePrefix(const std::string& prefix);   // 1-6 hex digits
 
+// Alternative marker for pilots who keep their real Mode S code: the word EHSLINK anywhere in
+// the remarks (typically RMK/EHSLINK), as a whole word, case-insensitive.
+constexpr const char* kRemarkMarker = "EHSLINK";
+bool HasEhsRemark(const std::string& remarks);
+
 struct Broker
 {
     std::string host;

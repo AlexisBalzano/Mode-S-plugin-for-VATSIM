@@ -20,11 +20,12 @@ Requirements: MSFS, vPilot. Nothing else (no FSUIPC).
 1. **Drag `Community\ehslink-module` into your MSFS Community folder.**
 2. **Drag `vPilot\EhsLink.vPilot.dll` into vPilot's `Plugins` folder** (e.g. `C:\vPilot\Plugins`).
 3. Restart MSFS and vPilot.
-4. **Announce it in your flight plan (SimBrief):** set the airframe's **Mode S code** to
-   `FE5` followed by any 3 characters from `0-9 A-F`, e.g. **`FE5000`**. SimBrief files it as
-   `CODE/FE5000`, and controllers see you as EHS Link equipped even before your data arrives.
-   `F…` codes aren't allocated to real aircraft, so a real airframe's code can never be
-   mistaken for the marker.
+4. **Announce it in your flight plan (optional):** controllers then see you as EHS Link
+   equipped even before your data arrives. Either:
+   - add **`EHSLINK`** to your remarks (SimBrief *Remarks* field → `RMK/EHSLINK`), keeping
+     your real Mode S code, or
+   - set the SimBrief airframe's **Mode S code** to `FE5` + any 3 characters from `0-9 A-F`,
+     e.g. **`FE5000`** (filed as `CODE/FE5000`). `F…` codes aren't allocated to real aircraft.
 5. Connect to VATSIM. vPilot's message window shows which aircraft profile EHS Link is using.
 
 PMDG aircraft need no extra setup: EHS Link reads the MCP values the aircraft publishes itself
@@ -93,7 +94,7 @@ heartbeat_ms = 10000
    - `EHS altimeter setting`: `1013` (hPa) or `29.92` (inHg), in the pilot's own unit by default (`.ehs baro` to force one). STD shows as 1013 / 29.92
    - `EHS status`: `EHS~` (and dimmed colours on the other items) = data from an **unverified
      draft profile**: probably right, but not yet checked in that aircraft's cockpit. Hide such data with `.ehs unverified off`.
-     `EHS` data arriving, `ehs` (grey) filed `CODE/FE5…` but no data arriving (pilot's plugin not running), `EHS!` mismatch has lasted past the grace period, `EHS?` data position doesn't match the radar target (ignored)
+     `EHS` data arriving, `ehs` (grey) filed as equipped (`RMK/EHSLINK` or `CODE/FE5…`) but no data arriving (pilot's plugin not running), `EHS!` mismatch has lasted past the grace period, `EHS?` data position doesn't match the radar target (ignored)
 3. **Colours (live):** each item compares the pilot's selection with your **cleared altitude,
    assigned heading, speed/Mach or rate**, and the altimeter setting with the expected one:
 

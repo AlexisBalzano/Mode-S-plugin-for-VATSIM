@@ -21,11 +21,14 @@ Nothing goes over the VATSIM network itself: data travels over a public MQTT bro
 
 ## Flight plan marker
 
-Pilots announce EHS Link by filing a Mode S code (ICAO 24-bit address) of `FE5` + 3 hex digits,
-e.g. `CODE/FE5000` in item 18 (SimBrief's "Mode S code" airframe field). Controllers detect
-`CODE/FE5xxx` in the remarks. The `0xF…` block isn't allocated to real aircraft, so real
-airframe addresses never match. A pilot is recognized by live data *or* the marker; neither
-requires the other.
+Pilots announce EHS Link in their flight plan in either of two ways (controllers accept both):
+- the word `EHSLINK` in the remarks, typically `RMK/EHSLINK` (whole word, case-insensitive),
+  which lets pilots keep their real Mode S code; or
+- a Mode S code (ICAO 24-bit address) of `FE5` + 3 hex digits, e.g. `CODE/FE5000` in item 18
+  (SimBrief's "Mode S code" airframe field). The `0xF…` block isn't allocated to real aircraft,
+  so real airframe addresses never match.
+
+A pilot is recognized by live data *or* the marker; neither requires the other.
 
 ## Timing
 
