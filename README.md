@@ -18,21 +18,16 @@ Requirements: MSFS, vPilot. Nothing else (no FSUIPC).
 1. **Drag `Community\ehslink-module` into your MSFS Community folder.**
 2. **Drag `vPilot\EhsLink.vPilot.dll` into vPilot's `Plugins` folder** (e.g. `C:\vPilot\Plugins`).
 3. Restart MSFS and vPilot.
-4. **PMDG 777 / 737 only:** PMDG publishes its MCP data only when you allow it, once per
-   aircraft. With the aircraft *not* loaded, add these lines to the end of the aircraft's
-   options file, then set the file to **read-only** (PMDG rewrites it otherwise):
-   ```
-   [SDK]
-   EnableDataBroadcast=1
-   ```
-   MS Store: `%LOCALAPPDATA%\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalState\packages\pmdg-aircraft-77w\work\777_Options.ini`
-   (same for `-77er`, `-77f`; the 737 uses `pmdg-aircraft-738\work\737_Options.ini`).
-5. **Announce it in your flight plan (SimBrief):** set the airframe's **Mode S code** to
+4. **Announce it in your flight plan (SimBrief):** set the airframe's **Mode S code** to
    `FE5` followed by any 3 characters from `0-9 A-F`, e.g. **`FE5000`**. SimBrief files it as
    `CODE/FE5000`, and controllers see you as EHS Link equipped even before your data arrives.
    `F…` codes aren't allocated to real aircraft, so a real airframe's code can never be
    mistaken for the marker.
-6. Connect to VATSIM. vPilot's message window shows which aircraft profile EHS Link is using.
+5. Connect to VATSIM. vPilot's message window shows which aircraft profile EHS Link is using.
+
+PMDG aircraft need no extra setup: EHS Link reads the MCP values the aircraft publishes itself
+(no `EnableDataBroadcast` options-file edit). If you made an options file read-only for an
+earlier version, you can make it writable again.
 
 **Aircraft support** comes from `profiles.ini` inside `ehslink-module`: one section per
 aircraft, using the aircraft's own variables (A:vars, L:vars) or PMDG's data. Aircraft without
@@ -43,7 +38,7 @@ requests (see the comments at the top of `profiles.ini`).
 
 | Verified | Draft (unverified) |
 |---|---|
-| PMDG 777 (all variants), FlyByWire A32NX & A380X, Headwind A339, Aerosoft A346, iniBuilds A350, Asobo A320neo, ATR 42/72-600 | Fenix A319/A320/A321, FSLabs A319/A320/A321, iniBuilds A320neo V2/A321/A330/A340/A380/Beluga XL, A300 & A310, FSS E-Jets, Boeing 787 (Asobo, HorizonSim, Kuro), Boeing 747-8, TFDi MD-11, Bluebird 757, Leonardo MD-82, iFly 737 MAX, PMDG 737, LVFR A318/A319, Citation CJ4 & Longitude, Synaptic A22X, Aerosoft CRJ, Just Flight BAe 146, F28 & F100, Learjet 35A |
+| PMDG 777 & 737 (all variants), FlyByWire A32NX & A380X, Headwind A339, Aerosoft A346, iniBuilds A350, Asobo A320neo, ATR 42/72-600, Citation X, Bluebird 757, TFDi MD-11, Boeing 787-8 (Kuro), 787-9 (HorizonSim) & 787-10 (Asobo) | Fenix A319/A320/A321, FSLabs A319/A320/A321, iniBuilds A320neo V2/A321/A330/A340/A380/Beluga XL, A300 & A310, FSS E-Jets, Boeing 747-8, Leonardo MD-82, iFly 737 MAX, LVFR A318/A319, Citation CJ4 & Longitude, Synaptic A22X, Aerosoft CRJ, Just Flight BAe 146, F28 & F100, Learjet 35A |
 
 Draft profiles were built from the community presets in **MobiFlight's HubHop** database
 ([hubhop.mobiflight.com](https://hubhop.mobiflight.com)) and from the WinWing / MobiFlight FCU
