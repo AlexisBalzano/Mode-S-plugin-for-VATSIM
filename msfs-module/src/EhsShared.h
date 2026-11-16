@@ -28,6 +28,7 @@ enum EhsFlags : int32_t
     kFlagBaroUnitKnown = 1 << 7,
     kFlagBaroHpa = 1 << 8,
     kFlagVerified = 1 << 9,
+    kFlagCurrent = 1 << 10,   // curIas / curMach valid
 };
 
 #pragma pack(push, 1)
@@ -46,7 +47,9 @@ struct EhsShared
     double lat, lon;    // deg
     char source[32];    // profile name
     char title[96];     // aircraft title
+    float curIas;       // current indicated airspeed, kt   (kFlagCurrent)
+    float curMach;      // current Mach                     (kFlagCurrent)
 };
 #pragma pack(pop)
 
-static_assert(sizeof(EhsShared) == 184, "EhsShared layout changed: update ModuleReader.cs");
+static_assert(sizeof(EhsShared) == 192, "EhsShared layout changed: update ModuleReader.cs");

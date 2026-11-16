@@ -11,6 +11,10 @@ Nothing travels over the VATSIM network. Data goes through a free public MQTT br
 
 Requirements: MSFS, vPilot. Nothing else (no FSUIPC).
 
+> **Simulator support:** tested in **MSFS 2020**. **MSFS 2024 is untested**: the module and
+> plugin are expected to work, but aircraft titles and the reworked default aircraft may need
+> new profiles. Reports (and snapshots) from 2024 users are very welcome.
+
 1. **Drag `Community\ehslink-module` into your MSFS Community folder.**
 2. **Drag `vPilot\EhsLink.vPilot.dll` into vPilot's `Plugins` folder** (e.g. `C:\vPilot\Plugins`).
 3. Restart MSFS and vPilot.
@@ -36,6 +40,30 @@ a profile use the simulator's standard autopilot variables, which suit default a
 not study-level add-ons with their own FCU/MCP logic; those need a profile. Profiles marked
 `verified = yes` have been checked against the real cockpit. New profiles are welcome as pull
 requests (see the comments at the top of `profiles.ini`).
+
+| Verified | Draft (unverified) |
+|---|---|
+| PMDG 777 (all variants), FlyByWire A32NX & A380X, Headwind A339, Aerosoft A346, iniBuilds A350, Asobo A320neo, ATR 42/72-600 | Fenix A319/A320/A321, FSLabs A319/A320/A321, iniBuilds A320neo V2/A321/A330/A340/A380/Beluga XL, A300 & A310, FSS E-Jets, Boeing 787 (Asobo, HorizonSim, Kuro), Boeing 747-8, TFDi MD-11, Bluebird 757, Leonardo MD-82, iFly 737 MAX, PMDG 737, LVFR A318/A319, Citation CJ4 & Longitude, Synaptic A22X, Aerosoft CRJ, Just Flight BAe 146, F28 & F100, Learjet 35A |
+
+Draft profiles were built from the community presets in **MobiFlight's HubHop** database
+([hubhop.mobiflight.com](https://hubhop.mobiflight.com)) and from the WinWing / MobiFlight FCU
+profiles that community members share on **flightsim.to** (only the variable names were used).
+Thanks to the MobiFlight community and to those authors.
+Controllers see draft-profile data marked `EHS~`. If you fly one of these, a snapshot and a
+panel screenshot (below) is all it takes to verify it.
+
+**Request support for your aircraft (no tools needed):**
+1. Load the aircraft, power the autopilot panel, and dial **ALT 12300, HDG 123, SPD 234**
+   (plus any V/S the aircraft allows).
+2. Within a few seconds the module saves a snapshot of the aircraft's variables as
+   `snapshot.txt` in its work folder:
+   - MSFS 2020, MS Store: `%LOCALAPPDATA%\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalState\packages\ehslink-module\work\`
+   - MSFS 2020, Steam: `%APPDATA%\Microsoft Flight Simulator\Packages\ehslink-module\work\`
+   - MSFS 2024, MS Store: usually `%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalState\WASM\MSFS2024\ehslink-module\work\`
+   - MSFS 2024, Steam: usually `%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2024\ehslink-module\work\`
+   - If it isn't there, search your PC for `snapshot.txt`.
+3. Open a GitHub issue with the aircraft name, a screenshot of the autopilot panel, and that
+   file attached. Maintainers can also trigger a snapshot with `EhsTool snapshot 12300 123 234`.
 
 **Profiles update themselves.** At every sim start the module downloads
 `msfs-module/package/profiles.ini` from this repository and uses it when its `[Update] version`
@@ -64,8 +92,11 @@ heartbeat_ms = 10000
    - `EHS selected speed`: `250` or `M78` (`---` = window blank / managed)
    - `EHS selected V/S`: `-15` = -1500 ft/min (`---` = not in V/S mode)
    - `EHS summary (ALT HDG SPD)`: `240 270 M78`
+   - `EHS current IAS` / `EHS current Mach`: the aircraft's **actual** speed (`251`, `M78`), updated about every 5 s. Information only, never coloured
    - `EHS altimeter setting`: `1013` (hPa) or `29.92` (inHg), in the pilot's own unit by default (`.ehs baro` to force one). STD shows as 1013 / 29.92
-   - `EHS status`: `EHS` data arriving, `ehs` (grey) filed `CODE/FE5…` but no data arriving (pilot's plugin not running), `EHS!` mismatch has lasted past the grace period, `EHS?` data position doesn't match the radar target (ignored)
+   - `EHS status`: `EHS~` (and dimmed colours on the other items) = data from an **unverified
+     draft profile**: probably right, but not yet checked in that aircraft's cockpit. Hide such data with `.ehs unverified off`.
+     `EHS` data arriving, `ehs` (grey) filed `CODE/FE5…` but no data arriving (pilot's plugin not running), `EHS!` mismatch has lasted past the grace period, `EHS?` data position doesn't match the radar target (ignored)
 3. **Colours (live):** each item compares the pilot's selection with your **cleared altitude,
    assigned heading, speed/Mach or rate**, and the altimeter setting with the expected one:
 
@@ -87,9 +118,9 @@ heartbeat_ms = 10000
 4. **Lists:**
    - The plugin adds an **"EHS Link" list** (`.ehs list` to open it) with every equipped
      aircraft in range, assigned value next to the pilot's selection:
-     `C/S  TYPE  CFL SEL  AHDG SHDG  ASPD SSPD  ARTE SV/S  QNH  EHS`.
-     (Controllers who already opened the list keep their saved layout: add the
-     *EHS altimeter setting* column by hand.)
+     `C/S  TYPE  CFL SEL  AHDG SHDG  ASPD SSPD  IAS MACH  ARTE SV/S  QNH  EHS`.
+     (Controllers who already opened the list keep their saved layout: add new columns,
+     e.g. *EHS current IAS / Mach* or *EHS altimeter setting*, by hand.)
      The pilot columns use the same green/red colours. Clicking CFL, AHDG, ASPD (right-click
      for Mach) or ARTE opens EuroScope's usual edit popup, and clicking the callsign opens the
      flight plan. You can rearrange the columns, and EuroScope saves the layout.
@@ -105,6 +136,7 @@ Commands:
 .ehs list                     open the EHS Link list
 .ehs code FE5                 flight plan marker prefix (CODE/FE5xxx)
 .ehs baro pilot|hpa|inhg      altimeter display unit (default: pilot's unit)
+.ehs unverified on|off        show data from unverified draft profiles (default on, marked EHS~)
 .ehs color match 110,190,120  exact-match colour (R,G,B, or 'default')
 .ehs color near 100,160,235   close-but-not-exact colour
 .ehs color mismatch 230,110,110  mismatch colour

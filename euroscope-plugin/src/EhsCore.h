@@ -30,6 +30,9 @@ struct Selections
     bool trk = false;
     std::optional<double> baro;   // altimeter setting, hPa
     std::string baroUnit;         // "hPa", "inHg" or empty (unknown)
+    bool verified = true;         // "ver": profile checked against the cockpit (absent = true)
+    std::optional<int> curIas;    // current indicated airspeed, kt
+    std::optional<double> curMach;// current Mach
     int64_t sentUnix = 0;
     uint64_t receivedTick = 0;   // GetTickCount64() when received
 };

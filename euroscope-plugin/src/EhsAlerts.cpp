@@ -6,6 +6,10 @@
 
 namespace ehs
 {
+// hPa as an altimeter shows it: the decimal is cut, not rounded (29.76 inHg = 1007.8 hPa is
+// shown as 1007). The small epsilon keeps 1006.9999 from becoming 1006.
+int HpaShown(double hpa) { return static_cast<int>(std::floor(hpa + 0.01)); }
+
 namespace
 {
 double AssignedMach(int raw) { return raw >= 100 ? raw / 1000.0 : raw / 100.0; }
@@ -77,7 +81,7 @@ Match Compare(Field f, const Selections& s, const Assigned& a, const Tolerances&
                 long sel = std::lround(*s.baro / 33.8639 * 100), ref = std::lround(a.baroRef / 33.8639 * 100);
                 return Grade(std::labs(sel - ref) / 100.0, t.qnhInHg);
             }
-            return Grade(std::labs(std::lround(*s.baro) - std::lround(a.baroRef)), t.qnhHpa);
+            return Grade(std::abs(HpaShown(*s.baro) - HpaShown(a.baroRef)), t.qnhHpa);
         default: return Match::None;
     }
 }
@@ -204,7 +208,7 @@ std::string Describe(Field f, const Selections& s, const Assigned& a)
             if (s.baroUnit == "inHg")
                 sprintf_s(buf, "Altimeter %.2f inHg, expected %s%.2f", s.baro.value_or(0) / 33.8639, isStd ? "STD " : "QNH ", a.baroRef / 33.8639);
             else
-                sprintf_s(buf, "Altimeter %ld hPa, expected %s%ld", std::lround(s.baro.value_or(0)), isStd ? "STD " : "QNH ", std::lround(a.baroRef));
+                sprintf_s(buf, "Altimeter %d hPa, expected %s%d", HpaShown(s.baro.value_or(0)), isStd ? "STD " : "QNH ", HpaShown(a.baroRef));
             break;
         }
         default: buf[0] = 0;
@@ -246,13 +250,27 @@ std::string TagVs(const Selections& s)
     return b;
 }
 
+std::string TagCurIas(const Selections& s)
+{
+    if (!s.curIas) return "---";
+    return std::to_string(*s.curIas);
+}
+
+std::string TagCurMach(const Selections& s)
+{
+    if (!s.curMach) return "---";
+    char b[16];
+    sprintf_s(b, "M%02d", static_cast<int>(std::lround(*s.curMach * 100)));
+    return b;
+}
+
 std::string TagBaro(const Selections& s, BaroDisplay d)
 {
     if (!s.baro) return "---";
     bool inHg = d == BaroDisplay::InHg || (d == BaroDisplay::Pilot && s.baroUnit == "inHg");
     char b[16];
     if (inHg) sprintf_s(b, "%.2f", *s.baro / 33.8639);
-    else sprintf_s(b, "%d", static_cast<int>(std::floor(*s.baro + 0.5)));   // nearest whole hPa
+    else sprintf_s(b, "%d", HpaShown(*s.baro));
     return b;
 }
 

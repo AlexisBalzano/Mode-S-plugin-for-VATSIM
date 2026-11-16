@@ -33,6 +33,7 @@ requires the other.
 |---|---|
 | Sim polled | every 250 ms |
 | Publish on change | immediately, at most 1 per second |
+| Current IAS/Mach changed (≥ 2 kt or 0.01 M) | at most every 5 s (like a radar sweep) |
 | Heartbeat (unchanged values) | every 10 s |
 | Controller treats data as stale | no message for 30 s |
 
@@ -59,5 +60,8 @@ requires the other.
 | `vs` | int or null | Selected vertical speed, ft/min, signed. `null` when not in V/S mode (window blank, FPA mode) |
 | `baro` | number or null | Altimeter setting, hPa, 1 decimal (1013.2 when STD is selected) |
 | `baroUnit` | string or null | Unit the pilot has selected on the EFIS: `"hPa"` or `"inHg"`; `null` if unknown |
+| `cias` | int or null | **Current** indicated airspeed, kt (actual, not selected) |
+| `cmach` | number or null | **Current** Mach (actual, not selected) |
+| `ver` | bool | `true` when the aircraft profile has been verified against the real cockpit |
 
 Receivers must ignore unknown fields.

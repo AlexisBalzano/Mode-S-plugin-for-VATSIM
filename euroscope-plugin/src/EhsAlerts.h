@@ -81,6 +81,8 @@ std::string TagHdg(const Selections& s);    // "270" / "270T"
 std::string TagSpd(const Selections& s);    // "250" / "M78" / "---"
 std::string TagVs(const Selections& s);     // "-15" / "+20" / "0" / "---"
 std::string TagSummary(const Selections& s);
+std::string TagCurIas(const Selections& s);    // current IAS "251" / "---"
+std::string TagCurMach(const Selections& s);   // current Mach "M78" / "---"
 
 enum class BaroDisplay { Pilot, Hpa, InHg };
 std::string TagBaro(const Selections& s, BaroDisplay d);   // "1013" / "29.92" / "---"

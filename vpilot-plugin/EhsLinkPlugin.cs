@@ -23,6 +23,7 @@ namespace EhsLink
         private IBroker _broker;
         private SynchronizationContext _ui;
         private readonly object _gate = new object();
+        private readonly ModuleReader _sim = new ModuleReader();
 
         // config
         private List<KeyValuePair<string, int>> _brokers = new List<KeyValuePair<string, int>>
@@ -30,7 +31,8 @@ namespace EhsLink
             new KeyValuePair<string, int>("broker.hivemq.com", 1883),
             new KeyValuePair<string, int>("broker.emqx.io", 1883),
         };
-        private int _pollMs = 250, _minIntervalMs = 1000, _heartbeatMs = 10000;
+        private int _pollMs = 250, _minIntervalMs = 1000, _heartbeatMs = 10000, _currentSpeedMs = 5000;
+        private Selections _lastSentSel;
 
         // state
         private volatile string _callsign;          // non-null while connected to VATSIM as a pilot
@@ -56,7 +58,11 @@ namespace EhsLink
                 lock (_gate) { _callsign = Sanitize(e.Callsign); _lastKey = null; }
             };
             broker.NetworkDisconnected += (s, e) => StopSession();
-            broker.SessionEnded += (s, e) => StopSession();
+            broker.SessionEnded += (s, e) =>
+            {
+                StopSession();
+                _sim.Dispose();   // close SimConnect cleanly before vPilot exits
+            };
 
             new Thread(Loop) { IsBackground = true, Name = "EHS Link" }.Start();
             Post("EHS Link " + Version + " loaded. Your autopilot selections will be shared with EHS Link controllers while you're connected.");
@@ -66,9 +72,9 @@ namespace EhsLink
 
         private void Loop()
         {
-            using (var sim = new ModuleReader())
+            var sim = _sim;
+            sim.Start();
             {
-                sim.Start();
                 while (true)
                 {
                     Thread.Sleep(_pollMs);
@@ -105,7 +111,9 @@ namespace EhsLink
             var key = sel.Key();
             var since = (now - _lastSent).TotalMilliseconds;
             bool changed = key != _lastKey;
-            if ((changed && since >= _minIntervalMs) || since >= _heartbeatMs)
+            // Current IAS/Mach moves all the time: send it like a radar sweep, at most every 5 s.
+            bool speedDue = since >= _currentSpeedMs && sel.CurrentSpeedDiffers(_lastSentSel);
+            if ((changed && since >= _minIntervalMs) || speedDue || since >= _heartbeatMs)
             {
                 var unix = (long)(now - new DateTime(1970, 1, 1)).TotalSeconds;
                 try
@@ -113,6 +121,7 @@ namespace EhsLink
                     _mqtt.Publish(TopicRoot + callsign, Encoding.UTF8.GetBytes(sel.ToJson(callsign, unix)), true);
                     _lastKey = key;
                     _lastSent = now;
+                    _lastSentSel = sel;
                 }
                 catch { DropMqtt(); }
             }

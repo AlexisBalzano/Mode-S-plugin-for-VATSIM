@@ -44,7 +44,7 @@ namespace
 const char* kName = "EHS Link";
 const char* kVersion = "0.1.0";
 
-enum TagItems { kTagAlt = 1, kTagHdg, kTagSpd, kTagVs, kTagSummary, kTagStatus, kTagBaro };
+enum TagItems { kTagAlt = 1, kTagHdg, kTagSpd, kTagVs, kTagSummary, kTagStatus, kTagBaro, kTagCurIas, kTagCurMach };
 
 constexpr uint64_t kStaleMs = 30000;          // no message for 30 s = no data
 constexpr int64_t kMaxRetainedAgeSec = 120;   // ignore retained messages older than this (sender clock)
@@ -87,6 +87,8 @@ public:
         RegisterTagItemType("EHS summary (ALT HDG SPD)", kTagSummary);
         RegisterTagItemType("EHS status", kTagStatus);
         RegisterTagItemType("EHS altimeter setting", kTagBaro);
+        RegisterTagItemType("EHS current IAS", kTagCurIas);
+        RegisterTagItemType("EHS current Mach", kTagCurMach);
         CreateList();
 
         LoadSettings();
@@ -104,7 +106,7 @@ public:
         const char* cs = RadarTarget.IsValid() ? RadarTarget.GetCallsign()
                        : FlightPlan.IsValid() ? FlightPlan.GetCallsign() : nullptr;
         if (!cs) return;
-        auto data = m_store.Get(cs, kStaleMs);
+        auto data = Data(cs);
         if (!data)
         {
             // Filed as EHS Link equipped (CODE/ in the flight plan) but no data arriving:
@@ -132,7 +134,12 @@ public:
             case kTagVs: text = ehs::TagVs(*data); field = ehs::kVs; break;
             case kTagSummary: text = ehs::TagSummary(*data); break;
             case kTagBaro: text = ehs::TagBaro(*data, m_baroDisplay); field = ehs::kBaro; break;
-            case kTagStatus: text = posBad ? "EHS?" : (al && al->AnyAlerting() ? "EHS!" : "EHS"); break;
+            case kTagCurIas: text = ehs::TagCurIas(*data); field = -2; break;     // display only, no colour
+            case kTagCurMach: text = ehs::TagCurMach(*data); field = -2; break;
+            case kTagStatus:
+                text = posBad ? "EHS?" : (al && al->AnyAlerting() ? "EHS!" : "EHS");
+                if (!posBad && !data->verified) text += "~";   // data from an unverified (draft) profile
+                break;
             default: return;
         }
         if (posBad) text = (ItemCode == kTagStatus) ? text : "?";
@@ -143,12 +150,14 @@ public:
         // Colour shows the live comparison with what you assigned: green exact, blue close
         // (within tolerance), red off. Nothing assigned = default colour. Summary/status items
         // take the worst of all fields.
+        if (field == -2) return;   // current speed: plain information, never coloured
         ehs::Match m = ehs::Match::None;
         if (field >= 0) m = al->f[field].match;
         else for (auto& f : al->f) m = Worse(m, f.match);
         if (m == ehs::Match::None) return;
         *pColorCode = TAG_COLOR_RGB_DEFINED;
-        *pRGB = m == ehs::Match::Exact ? m_matchColor : m == ehs::Match::Near ? m_nearColor : m_mismatchColor;
+        COLORREF c = m == ehs::Match::Exact ? m_matchColor : m == ehs::Match::Near ? m_nearColor : m_mismatchColor;
+        *pRGB = data->verified ? c : Dimmed(c);
     }
 
     static ehs::Match Worse(ehs::Match a, ehs::Match b)
@@ -184,7 +193,7 @@ public:
         for (CRadarTarget rt = RadarTargetSelectFirst(); rt.IsValid(); rt = RadarTargetSelectNext(rt))
         {
             std::string cs = rt.GetCallsign();
-            auto data = m_store.Get(cs, kStaleMs);
+            auto data = Data(cs);
             if (!data) continue;
 
             if (data->hasPos)
@@ -221,6 +230,7 @@ public:
                 std::string msg;
                 for (int i = 0; i < ehs::kFieldCount; ++i)
                     if (started & (1u << i)) msg += (msg.empty() ? "" : "; ") + ehs::Describe(static_cast<ehs::Field>(i), *data, a);
+                if (!data->verified) msg += " (unverified profile)";
                 DisplayUserMessage(kName, cs.c_str(), msg.c_str(), true, true, true, true, false);
                 PlayAlertSound();
             }
@@ -274,6 +284,11 @@ public:
             m_codePrefix = arg;
             for (auto& c : m_codePrefix) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
             Save("code_prefix", "EHS flight plan code prefix", m_codePrefix);
+        }
+        else if (sub == "unverified" && (arg == "on" || arg == "off"))
+        {
+            m_showUnverified = arg == "on";
+            Save("unverified", "EHS show unverified profiles", arg);
         }
         else if (sub == "baro" && (arg == "pilot" || arg == "hpa" || arg == "inhg"))
         {
@@ -334,7 +349,7 @@ public:
         }
         else
         {
-            Show("Commands: .ehs | list | code <prefix> | baro pilot|hpa|inhg | color match|mismatch R,G,B | notify mine|all|off | sound on|off|<file.wav> | grace <s> | tol alt|hdg|spd|vs <n> | brokers <list>");
+            Show("Commands: .ehs | list | code <prefix> | baro pilot|hpa|inhg | unverified on|off | color match|near|mismatch R,G,B | notify mine|all|off | sound on|off|<file.wav> | grace <s> | tol alt|hdg|spd|vs <n> | brokers <list>");
             return true;
         }
         Show("OK.");
@@ -357,6 +372,8 @@ private:
         m_list.AddColumnDefinition("SHDG", 4, true, kName, kTagHdg, nullptr, TAG_ITEM_FUNCTION_NO, nullptr, TAG_ITEM_FUNCTION_NO);
         m_list.AddColumnDefinition("ASPD", 4, true, es, TAG_ITEM_TYPE_ASSIGNED_SPEED, nullptr, TAG_ITEM_FUNCTION_ASSIGNED_SPEED_POPUP, nullptr, TAG_ITEM_FUNCTION_ASSIGNED_MACH_POPUP);
         m_list.AddColumnDefinition("SSPD", 4, true, kName, kTagSpd, nullptr, TAG_ITEM_FUNCTION_NO, nullptr, TAG_ITEM_FUNCTION_NO);
+        m_list.AddColumnDefinition("IAS", 4, true, kName, kTagCurIas, nullptr, TAG_ITEM_FUNCTION_NO, nullptr, TAG_ITEM_FUNCTION_NO);
+        m_list.AddColumnDefinition("MACH", 4, true, kName, kTagCurMach, nullptr, TAG_ITEM_FUNCTION_NO, nullptr, TAG_ITEM_FUNCTION_NO);
         m_list.AddColumnDefinition("ARTE", 4, true, es, TAG_ITEM_TYPE_ASSIGNED_RATE, nullptr, TAG_ITEM_FUNCTION_ASSIGNED_RATE_POPUP, nullptr, TAG_ITEM_FUNCTION_NO);
         m_list.AddColumnDefinition("SV/S", 4, true, kName, kTagVs, nullptr, TAG_ITEM_FUNCTION_NO, nullptr, TAG_ITEM_FUNCTION_NO);
         m_list.AddColumnDefinition("QNH", 5, true, kName, kTagBaro, nullptr, TAG_ITEM_FUNCTION_NO, nullptr, TAG_ITEM_FUNCTION_NO);
@@ -372,7 +389,7 @@ private:
             std::string cs = rt.GetCallsign();
             CFlightPlan fp = rt.GetCorrelatedFlightPlan();
             if (!fp.IsValid()) continue;
-            auto data = m_store.Get(cs, kStaleMs);
+            auto data = Data(cs);
             if (!data && !IsFiled(fp)) continue;
 
             std::string key = RowKey(cs, data ? &*data : nullptr);
@@ -402,7 +419,8 @@ private:
     {
         if (!d) return "filed";
         std::string k = ehs::TagAlt(*d) + "|" + ehs::TagHdg(*d) + "|" + ehs::TagSpd(*d) + "|" + ehs::TagVs(*d) +
-                        "|" + ehs::TagBaro(*d, m_baroDisplay);
+                        "|" + ehs::TagBaro(*d, m_baroDisplay) + "|" + ehs::TagCurIas(*d) + "|" + ehs::TagCurMach(*d);
+        if (!d->verified) k += "|~";
         if (m_positionBad.count(cs)) return k + "|pos";
         auto it = m_alerts.find(cs);
         if (it != m_alerts.end())
@@ -534,6 +552,7 @@ private:
     {
         m_notify = Load("notify", "mine");
         m_sound = Load("sound", "off");   // visual alerts first; sound is opt-in
+        m_showUnverified = Load("unverified", "on") != "off";
         std::string bu = Load("baro_unit", "pilot");
         m_baroDisplay = bu == "hpa" ? ehs::BaroDisplay::Hpa : bu == "inhg" ? ehs::BaroDisplay::InHg : ehs::BaroDisplay::Pilot;
         m_codePrefix = Load("code_prefix", ehs::kDefaultCodePrefix);
@@ -558,6 +577,21 @@ private:
     std::vector<ehs::Broker> m_brokers;
     ehs::Tolerances m_tol;
     std::string m_notify, m_sound, m_codePrefix;
+    bool m_showUnverified = true;
+
+    // Latest data for a callsign, honouring ".ehs unverified off".
+    std::optional<ehs::Selections> Data(const std::string& cs) const
+    {
+        auto d = m_store.Get(cs, kStaleMs);
+        if (d && !d->verified && !m_showUnverified) return std::nullopt;
+        return d;
+    }
+
+    // Unverified data: same hue, halfway to grey, so it reads as "indicative".
+    static COLORREF Dimmed(COLORREF c)
+    {
+        return RGB((GetRValue(c) + 140) / 2, (GetGValue(c) + 140) / 2, (GetBValue(c) + 140) / 2);
+    }
     ehs::BaroDisplay m_baroDisplay = ehs::BaroDisplay::Pilot;
     COLORREF m_matchColor = kDefaultMatchColor, m_mismatchColor = kDefaultMismatchColor, m_nearColor = kDefaultNearColor;
     std::map<std::string, double> m_metarQnh;      // station -> QNH hPa (main thread)

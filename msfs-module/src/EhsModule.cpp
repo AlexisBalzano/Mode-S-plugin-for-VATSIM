@@ -129,10 +129,10 @@ bool Eval(const std::string& code, double& out)
 
 enum : DWORD
 {
-    kDefUser = 1, kDefOut = 2, kDefPmdg777 = 3, kDefPmdg737 = 4,
-    kReqUser = 1, kReqPmdg777 = 2, kReqPmdg737 = 3,
+    kDefUser = 1, kDefOut = 2, kDefPmdg777 = 3, kDefPmdg737 = 4, kDefControl = 5,
+    kReqUser = 1, kReqPmdg777 = 2, kReqPmdg737 = 3, kReqControl = 4,
     kEvt6Hz = 1, kEvtAircraftLoaded = 2,
-    kCdOut = 1, kCdPmdg777 = 2, kCdPmdg737 = 3,
+    kCdOut = 1, kCdPmdg777 = 2, kCdPmdg737 = 3, kCdControl = 4,
 };
 
 // PMDG SDK data: the struct starts at FSUIPC offset 0x6420, so struct offset = FSUIPC - 0x6420.
@@ -161,6 +161,76 @@ int g_ticks = 0;
 
 template <typename T> T Read(const unsigned char* b, unsigned off) { T v; memcpy(&v, b + off, sizeof(T)); return v; }
 
+// ------------------------------------------------------------------ discovery snapshot
+// Writes every L:var (name = value) plus the standard autopilot variables at all indexes to
+// \work\snapshot.txt, so a profile can be built without FSUIPC. Triggered on request (the
+// EHSLink.Control client data area) or automatically once per aircraft when the pilot dials
+// the "learn" values ALT 12300 + HDG 123.
+const char* kSnapshotPath = "\\work\\snapshot.txt";
+bool g_learnSnapshotTaken = false;
+int g_learnTicks = 0;
+
+void WriteSnapshot(const char* reason)
+{
+    FILE* f = fopen(kSnapshotPath, "w");
+    if (!f) return;
+    fprintf(f, "# EHS Link variable snapshot (%s)\n", reason);
+    fprintf(f, "title = %s\n", g_title.c_str());
+    fprintf(f, "path = %s\n", g_path.c_str());
+    fprintf(f, "profile = %s\n", g_profile ? g_profile->name.c_str() : "(none)");
+    fprintf(f, "profiles_version = %d\n\n", g_set.version);
+
+    const char* avars[][2] = {
+        {"AUTOPILOT ALTITUDE LOCK VAR", "feet"}, {"AUTOPILOT HEADING LOCK DIR", "degrees"},
+        {"AUTOPILOT AIRSPEED HOLD VAR", "knots"}, {"AUTOPILOT MACH HOLD VAR", "number"},
+        {"AUTOPILOT VERTICAL HOLD VAR", "feet/minute"}, {"AUTOPILOT VERTICAL HOLD", "bool"},
+        {"AUTOPILOT MANAGED SPEED IN MACH", "bool"}, {"AUTOPILOT MACH HOLD", "bool"},
+        {"KOHLSMAN SETTING MB", "millibars"}, {"KOHLSMAN SETTING STD", "bool"},
+    };
+    for (auto& a : avars)
+        for (int idx = 0; idx <= 3; ++idx)
+        {
+            char code[128];
+            snprintf(code, sizeof(code), "(A:%s:%d, %s)", a[0], idx, a[1]);
+            double v;
+            if (Eval(code, v)) fprintf(f, "A:%s:%d = %.4f\n", a[0], idx, v);
+        }
+    fprintf(f, "\n");
+
+    int count = 0;
+    for (ID id = 0; id < 100000; ++id)
+    {
+        PCSTRINGZ name = get_name_of_named_variable(id);
+        if (!name) break;
+        fprintf(f, "L:%s = %.4f\n", name, get_named_variable_value(id));
+        ++count;
+    }
+    fprintf(f, "\n# %d L:vars\n", count);
+    fclose(f);
+    std::fprintf(stdout, "[EHS Link] snapshot written (%s, %d L:vars)\n", reason, count);
+}
+
+// Cheap check every ~5 s: has the pilot dialled the learn values?
+void CheckLearnTrigger()
+{
+    if (g_learnSnapshotTaken || ++g_learnTicks < 30) return;
+    g_learnTicks = 0;
+    bool alt = false, hdg = false;
+    for (ID id = 0; id < 100000 && !(alt && hdg); ++id)
+    {
+        PCSTRINGZ name = get_name_of_named_variable(id);
+        if (!name) break;
+        double v = get_named_variable_value(id);
+        alt |= std::fabs(v - 12300) < 0.5;
+        hdg |= std::fabs(v - 123) < 0.5;
+    }
+    double v;
+    if (!alt && Eval("(A:AUTOPILOT ALTITUDE LOCK VAR:3, feet)", v)) alt = std::fabs(v - 12300) < 1;
+    if (!alt && Eval("(A:AUTOPILOT ALTITUDE LOCK VAR:1, feet)", v)) alt = std::fabs(v - 12300) < 1;   // GA / Working Title
+    if (!hdg && Eval("(A:AUTOPILOT HEADING LOCK DIR, degrees)", v)) hdg = std::fabs(v - 123) < 0.5;
+    if (alt && hdg) { g_learnSnapshotTaken = true; WriteSnapshot("learn values dialled"); }
+}
+
 // PMDG creates its client data area only when the aircraft loads, and a request made before
 // that never delivers. So (re)request on every aircraft load and periodically while waiting.
 void RequestPmdg()
@@ -176,6 +246,7 @@ void SelectProfile()
     std::string id = Lower(g_title + "|" + g_path);
     g_profile = FindProfile(id);
     g_have777 = g_have737 = false;   // fresh PMDG data needed after an aircraft change
+    g_learnSnapshotTaken = false;    // new aircraft: the learn values may be dialled again
     if (g_sc) RequestPmdg();
     std::fprintf(stdout, "[EHS Link] aircraft '%s' -> profile '%s'\n", g_title.c_str(), g_profile ? g_profile->name.c_str() : "(none)");
 }
@@ -189,6 +260,15 @@ void Sample()
     Eval("(A:PLANE LONGITUDE, degrees)", lon);
     o.lat = lat; o.lon = lon;
     strncpy(o.title, g_title.c_str(), sizeof(o.title) - 1);
+
+    // Current airspeed: standard simulator variables, valid in every aircraft.
+    double cias = 0, cmach = 0;
+    if (Eval("(A:AIRSPEED INDICATED, knots)", cias) && Eval("(A:AIRSPEED MACH, mach)", cmach))
+    {
+        o.curIas = static_cast<float>(cias < 0 ? 0 : cias);
+        o.curMach = static_cast<float>(cmach < 0 ? 0 : cmach);
+        o.flags |= kFlagCurrent;
+    }
 
     const Profile* p = g_profile;
     if (!g_profilesLoaded) o.status = kStatusNoProfiles;
@@ -274,7 +354,7 @@ void CALLBACK Dispatch(SIMCONNECT_RECV* pData, DWORD cbData, void*)
         case SIMCONNECT_RECV_ID_EVENT:
         {
             auto* e = static_cast<SIMCONNECT_RECV_EVENT*>(pData);
-            if (e->uEventID == kEvt6Hz) Sample();
+            if (e->uEventID == kEvt6Hz) { Sample(); CheckLearnTrigger(); }
             break;
         }
         case SIMCONNECT_RECV_ID_EVENT_FILENAME:
@@ -308,6 +388,13 @@ void CALLBACK Dispatch(SIMCONNECT_RECV* pData, DWORD cbData, void*)
             DWORD avail = cbData > sizeof(SIMCONNECT_RECV_CLIENT_DATA) - sizeof(DWORD)
                         ? cbData - static_cast<DWORD>(sizeof(SIMCONNECT_RECV_CLIENT_DATA) - sizeof(DWORD)) : 0;
             DWORD n = avail < kPmdgBytes ? avail : kPmdgBytes;
+            if (d->dwRequestID == kReqControl)
+            {
+                int32_t req = 0;
+                memcpy(&req, src, avail < 4 ? avail : 4);
+                if (req != 0) WriteSnapshot("requested");   // the area starts at 0; any write = request
+                break;
+            }
             if (d->dwRequestID == kReqPmdg777) { memcpy(g_pmdg777, src, n); g_have777 = true; }
             else if (d->dwRequestID == kReqPmdg737) { memcpy(g_pmdg737, src, n); g_have737 = true; }
             break;
@@ -327,6 +414,12 @@ extern "C" MSFS_CALLBACK void module_init(void)
     SimConnect_MapClientDataNameToID(g_sc, kEhsSharedName, kCdOut);
     SimConnect_CreateClientData(g_sc, kCdOut, sizeof(EhsShared), SIMCONNECT_CREATE_CLIENT_DATA_FLAG_READ_ONLY);
     SimConnect_AddToClientDataDefinition(g_sc, kDefOut, 0, sizeof(EhsShared));
+
+    // Discovery requests: a writable 4-byte counter; each write asks for a snapshot.
+    SimConnect_MapClientDataNameToID(g_sc, "EHSLink.Control", kCdControl);
+    SimConnect_CreateClientData(g_sc, kCdControl, 4, SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+    SimConnect_AddToClientDataDefinition(g_sc, kDefControl, 0, 4);
+    SimConnect_RequestClientData(g_sc, kCdControl, kReqControl, kDefControl, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
 
     // PMDG SDK data (only present when the aircraft's broadcast is enabled).
     SimConnect_MapClientDataNameToID(g_sc, "PMDG_777X_Data", kCdPmdg777);

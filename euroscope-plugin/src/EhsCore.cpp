@@ -129,6 +129,9 @@ bool ParsePayload(const std::string& json, Selections& out)
     if (auto it = m.find("trk"); it != m.end() && it->second.kind == JsonValue::Bool) out.trk = it->second.b;
     if (auto it = m.find("baro"); it != m.end() && it->second.kind == JsonValue::Number) out.baro = it->second.num;
     if (auto it = m.find("baroUnit"); it != m.end() && it->second.kind == JsonValue::String) out.baroUnit = it->second.str;
+    if (auto it = m.find("ver"); it != m.end() && it->second.kind == JsonValue::Bool) out.verified = it->second.b;
+    out.curIas = OptInt(m, "cias");
+    if (auto it = m.find("cmach"); it != m.end() && it->second.kind == JsonValue::Number) out.curMach = it->second.num;
     return true;
 }
 

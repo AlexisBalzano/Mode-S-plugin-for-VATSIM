@@ -28,9 +28,20 @@ static void UnitTests()
     CHECK(ParsePayload(R"({"v":1,"cs":"AFR1","baro":1013.2,"baroUnit":"inHg"})", b));
     CHECK(TagBaro(b, BaroDisplay::Pilot) == "29.92" && TagBaro(b, BaroDisplay::Hpa) == "1013" && TagBaro(b, BaroDisplay::InHg) == "29.92");
     CHECK(ParsePayload(R"({"v":1,"cs":"AFR1","baro":998.6,"baroUnit":"hPa"})", b));
-    CHECK(TagBaro(b, BaroDisplay::Pilot) == "999" && TagBaro(b, BaroDisplay::InHg) == "29.49");
+    CHECK(TagBaro(b, BaroDisplay::Pilot) == "998" && TagBaro(b, BaroDisplay::InHg) == "29.49");   // hPa decimal cut like an altimeter
+    CHECK(ParsePayload(R"({"v":1,"cs":"ATR1","baro":1007.9})", b) && TagBaro(b, BaroDisplay::Hpa) == "1007" && TagBaro(b, BaroDisplay::InHg) == "29.76");   // ATR PFD: 1007 / 29.76
+    {
+        AircraftAlerts q; Assigned qa; qa.baroRef = 1007; Selections qs; qs.baro = 1007.9; qs.baroUnit = "";
+        Evaluate(qs, qa, Tolerances{}, q, 0); CHECK(q.f[kBaro].match == Match::Exact);              // green, not blue
+    }
     CHECK(ParsePayload(R"({"v":1,"cs":"AFR1","baro":1020.0,"baroUnit":null})", b));
     CHECK(TagBaro(b, BaroDisplay::Pilot) == "1020");   // unknown unit -> hPa
+    CHECK(TagCurIas(b) == "---" && TagCurMach(b) == "---");
+    CHECK(ParsePayload(R"({"v":1,"cs":"AFR1","cias":251,"cmach":0.78})", b));
+    CHECK(TagCurIas(b) == "251" && TagCurMach(b) == "M78");
+    CHECK(b.verified);                                                              // no "ver": treated as verified
+    CHECK(ParsePayload(R"({"v":1,"cs":"AFR1","ver":false})", b) && !b.verified);
+    CHECK(ParsePayload(R"({"v":1,"cs":"AFR1","ver":true})", b) && b.verified);
     CHECK(!ParsePayload(R"({"v":2,"cs":"X"})", s));
     CHECK(!ParsePayload("garbage", s));
     CHECK(!ParsePayload("", s));
