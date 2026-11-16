@@ -1,0 +1,61 @@
+name: Aircraft profile request
+description: Ask for an aircraft to be supported, or report wrong values for one.
+title: "[Aircraft] "
+labels: ["aircraft profile"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping! Before filling this in, load the aircraft, power the autopilot panel,
+        dial **ALT 12300, HDG 123, SPD 234** (plus any V/S the aircraft allows) and wait 10 seconds:
+        EHS Link saves `snapshot.txt` (see the guide for where to find it).
+  - type: input
+    id: aircraft
+    attributes:
+      label: Aircraft
+      description: Developer and model, as named in the sim.
+      placeholder: e.g. Fenix A320, iniBuilds A330-300
+    validations:
+      required: true
+  - type: dropdown
+    id: sim
+    attributes:
+      label: Simulator
+      options:
+        - MSFS 2020
+        - MSFS 2024
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What's this about?
+      options:
+        - Aircraft not supported yet
+        - Draft profile shows wrong values
+        - Verified profile shows wrong values
+        - Draft profile looks correct (please verify it)
+    validations:
+      required: true
+  - type: textarea
+    id: panel
+    attributes:
+      label: What the autopilot panel shows
+      description: Drop a screenshot of the FCU/MCP/autopilot panel here, and type what's in each window if it isn't readable.
+      placeholder: ALT 12300, HDG 123, SPD 234, V/S +1200, QNH 1007 hPa
+    validations:
+      required: true
+  - type: textarea
+    id: snapshot
+    attributes:
+      label: snapshot.txt
+      description: Drag the snapshot.txt file into this box (GitHub attaches it).
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: Wrong values you noticed, how to reach managed / Mach / TRK modes in this aircraft, etc.
+    validations:
+      required: false
