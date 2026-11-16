@@ -7,6 +7,8 @@ EuroScope tags, with an alert when they don't match what was assigned.
 Nothing travels over the VATSIM network. Data goes through a free public MQTT broker
 (see [PROTOCOL.md](PROTOCOL.md)). No accounts, no servers to run, no paid software.
 
+**Installation guide for pilots and controllers: https://cityz-n.github.io/Mode-S-plugin-for-VATSIM/**
+
 ## Pilots (vPilot + MSFS)
 
 Requirements: MSFS, vPilot. Nothing else (no FSUIPC).
