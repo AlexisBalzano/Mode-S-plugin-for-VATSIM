@@ -4,9 +4,15 @@
 #     vPilot\EhsLink.vPilot.dll      pilots: drag into vPilot's Plugins folder
 #     EuroScope\EhsLink.dll          controllers: load in EuroScope
 #     README.md, PROTOCOL.md, LICENSE
-param([string]$Version = "0.1.0")
+# Version comes from the VERSION file (change it with .\set-version.ps1 x.y.z).
+param([string]$Version = "")
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
+if (-not $Version) { $Version = (Get-Content (Join-Path $root "VERSION") -TotalCount 1).Trim() }
+if (-not (Select-String -Path (Join-Path $root "CHANGELOG.md") -Pattern "^## $([regex]::Escape($Version))\b" -Quiet)) {
+    Write-Warning "CHANGELOG.md has no '## $Version' section: add one before publishing this release."
+}
+Write-Host "Packaging EHS Link $Version"
 
 & (Join-Path $root "msfs-module\build.ps1")
 dotnet build (Join-Path $root "vpilot-plugin") -c Release -nologo -v q
@@ -23,7 +29,7 @@ New-Item -ItemType Directory -Force "$rel\Community", "$rel\vPilot", "$rel\EuroS
 Copy-Item (Join-Path $root "msfs-module\build\ehslink-module") "$rel\Community" -Recurse
 Copy-Item (Join-Path $root "vpilot-plugin\bin\Release\net472\EhsLink.vPilot.dll") "$rel\vPilot"
 Copy-Item (Join-Path $root "euroscope-plugin\build\EhsLink.dll") "$rel\EuroScope"
-Copy-Item (Join-Path $root "README.md"), (Join-Path $root "PROTOCOL.md"), (Join-Path $root "LICENSE") $rel
+Copy-Item (Join-Path $root "README.md"), (Join-Path $root "PROTOCOL.md"), (Join-Path $root "LICENSE"), (Join-Path $root "CHANGELOG.md") $rel
 
 $zip = "$rel.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }

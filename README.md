@@ -8,6 +8,7 @@ Nothing travels over the VATSIM network. Data goes through a free public MQTT br
 (see [PROTOCOL.md](PROTOCOL.md)). No accounts, no servers to run, no paid software.
 
 **Installation guide for pilots and controllers: https://cityz-n.github.io/Mode-S-plugin-for-VATSIM/**
+· What's new: [CHANGELOG.md](CHANGELOG.md)
 
 ## Pilots (vPilot + MSFS)
 
@@ -145,9 +146,22 @@ Commands:
 .ehs brokers host[:port],...  broker list (must match the pilots')
 ```
 
+## Releasing a new version
+
+1. `.\set-version.ps1 0.3.0`: stamps the version into the vPilot plugin, EuroScope plugin and
+   MSFS module (all parts always carry the same number).
+2. Add a `## 0.3.0 — date` section at the top of [CHANGELOG.md](CHANGELOG.md): what changed,
+   and who needs to update (pilots, controllers or both).
+3. `.\package.ps1` → `release\EHS-Link-0.3.0.zip` (warns if the changelog entry is missing).
+4. On GitHub, create a release tagged `v0.3.0`, paste the changelog section as its
+   description and attach the zip.
+
+Aircraft profile changes don't need a release: bump `[Update] version` in `profiles.ini`
+and push; pilots get it at their next sim start.
+
 ## Building
 
-- Everything + release zip: `package.ps1 -Version 0.1.0` → `release\EHS-Link-0.1.0.zip`.
+- Everything + release zip: `package.ps1` (version from the `VERSION` file) → `release\EHS-Link-<version>.zip`.
 - MSFS module: `msfs-module\build.ps1` (needs the free MSFS SDK; uses `MSFS_SDK`). Profile parser tests:
   `msfs-module\test\profiles_test.cpp` (`cl /std:c++17 /EHsc profiles_test.cpp`, run with `..\package\profiles.ini`).
 - vPilot plugin: `dotnet build vpilot-plugin -c Release` (needs vPilot installed at `C:\vPilot`, or pass `-p:VpilotDir=...`).

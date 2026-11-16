@@ -120,6 +120,8 @@
     <p>Pilots share their autopilot selections (altitude, heading, speed, V/S, altimeter).
        Controllers see them in EuroScope, coloured by whether they match the clearance.</p>
     <a class="btn" href="https://github.com/Cityz-N/Mode-S-plugin-for-VATSIM/releases/latest">Download the latest version</a>
+    <p class="muted" style="font-size:.95rem;margin:4px 0 0"><span id="latest-version"></span>
+      <a href="https://github.com/Cityz-N/Mode-S-plugin-for-VATSIM/blob/main/CHANGELOG.md">What's new</a></p>
     <div class="choose">
       <a class="pilot" href="#pilots"><strong>I'm a pilot</strong><span>MSFS + vPilot · 2 files to drag · 2 minutes</span></a>
       <a class="atc" href="#controllers"><strong>I'm a controller</strong><span>EuroScope plug-in · 1 file to load</span></a>
@@ -314,6 +316,16 @@ CFL 120  <span class="b">SEL 120</span>  ---  ---   <span class="x">EHS~</span><
     try { localStorage.setItem("ehs-theme", light ? "light" : "dark"); } catch (e) {}
     sync();
   });
+})();
+
+// Latest release number next to the download button (silent if GitHub is unreachable).
+(function () {
+  var el = document.getElementById("latest-version");
+  if (!el || !window.fetch) return;
+  fetch("https://api.github.com/repos/Cityz-N/Mode-S-plugin-for-VATSIM/releases/latest")
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (rel) { if (rel && rel.tag_name) el.textContent = "Latest: " + rel.tag_name + " ·"; })
+    .catch(function () {});
 })();
 
 // Live aircraft list: read the same profiles.ini the MSFS module downloads, so this page is

@@ -42,7 +42,7 @@ using namespace EuroScopePlugIn;
 namespace
 {
 const char* kName = "EHS Link";
-const char* kVersion = "0.1.0";
+const char* kVersion = "0.2.0";
 
 enum TagItems { kTagAlt = 1, kTagHdg, kTagSpd, kTagVs, kTagSummary, kTagStatus, kTagBaro, kTagCurIas, kTagCurMach };
 
