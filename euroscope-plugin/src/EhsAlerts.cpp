@@ -29,7 +29,7 @@ std::string PilotKey(Field f, const Selections& s)
         case kHdg: return s.hdg ? std::to_string(*s.hdg) : "-";
         case kSpd:
             if (s.ias) return "I" + std::to_string(*s.ias);
-            if (s.mach) { sprintf_s(buf, "M%.2f", *s.mach); return buf; }
+            if (s.mach) { _snprintf_s(buf, _TRUNCATE, "M%.2f", *s.mach); return buf; }
             return "-";
         case kVs: return s.vs ? std::to_string(*s.vs) : "-";
         case kBaro: return s.baro ? std::to_string(std::lround(*s.baro * 10)) : "-";
@@ -184,31 +184,31 @@ std::string Describe(Field f, const Selections& s, const Assigned& a)
     switch (f)
     {
         case kAlt:
-            sprintf_s(buf, "SEL ALT %d ft, cleared %d ft", s.alt.value_or(0), a.cfl);
+            _snprintf_s(buf, _TRUNCATE, "SEL ALT %d ft, cleared %d ft", s.alt.value_or(0), a.cfl);
             break;
         case kHdg:
-            sprintf_s(buf, "SEL %s %03d, assigned HDG %03d", s.trk ? "TRK" : "HDG", s.hdg.value_or(0), a.hdg);
+            _snprintf_s(buf, _TRUNCATE, "SEL %s %03d, assigned HDG %03d", s.trk ? "TRK" : "HDG", s.hdg.value_or(0), a.hdg);
             break;
         case kSpd:
         {
             char sel[16];
-            if (s.ias) sprintf_s(sel, "%d kt", *s.ias);
-            else if (s.mach) sprintf_s(sel, "M%.2f", *s.mach);
-            else sprintf_s(sel, "none");
-            if (a.spd > 0) sprintf_s(buf, "SEL SPD %s, assigned %d kt", sel, a.spd);
-            else sprintf_s(buf, "SEL SPD %s, assigned M%.2f", sel, AssignedMach(a.mach));
+            if (s.ias) _snprintf_s(sel, _TRUNCATE, "%d kt", *s.ias);
+            else if (s.mach) _snprintf_s(sel, _TRUNCATE, "M%.2f", *s.mach);
+            else _snprintf_s(sel, _TRUNCATE, "none");
+            if (a.spd > 0) _snprintf_s(buf, _TRUNCATE, "SEL SPD %s, assigned %d kt", sel, a.spd);
+            else _snprintf_s(buf, _TRUNCATE, "SEL SPD %s, assigned M%.2f", sel, AssignedMach(a.mach));
             break;
         }
         case kVs:
-            sprintf_s(buf, "SEL V/S %+d ft/min, assigned %d ft/min", s.vs.value_or(0), a.rate);
+            _snprintf_s(buf, _TRUNCATE, "SEL V/S %+d ft/min, assigned %d ft/min", s.vs.value_or(0), a.rate);
             break;
         case kBaro:
         {
             bool isStd = std::fabs(a.baroRef - 1013.25) < 0.01;
             if (s.baroUnit == "inHg")
-                sprintf_s(buf, "Altimeter %.2f inHg, expected %s%.2f", s.baro.value_or(0) / 33.8639, isStd ? "STD " : "QNH ", a.baroRef / 33.8639);
+                _snprintf_s(buf, _TRUNCATE, "Altimeter %.2f inHg, expected %s%.2f", s.baro.value_or(0) / 33.8639, isStd ? "STD " : "QNH ", a.baroRef / 33.8639);
             else
-                sprintf_s(buf, "Altimeter %d hPa, expected %s%d", HpaShown(s.baro.value_or(0)), isStd ? "STD " : "QNH ", HpaShown(a.baroRef));
+                _snprintf_s(buf, _TRUNCATE, "Altimeter %d hPa, expected %s%d", HpaShown(s.baro.value_or(0)), isStd ? "STD " : "QNH ", HpaShown(a.baroRef));
             break;
         }
         default: buf[0] = 0;
@@ -220,7 +220,7 @@ std::string TagAlt(const Selections& s)
 {
     if (!s.alt) return "---";
     char b[16];
-    sprintf_s(b, "%03d", (*s.alt + 50) / 100);
+    _snprintf_s(b, _TRUNCATE, "%03d", (*s.alt + 50) / 100);
     return b;
 }
 
@@ -228,15 +228,15 @@ std::string TagHdg(const Selections& s)
 {
     if (!s.hdg) return "---";
     char b[16];
-    sprintf_s(b, "%03d%s", *s.hdg, s.trk ? "T" : "");
+    _snprintf_s(b, _TRUNCATE, "%03d%s", *s.hdg, s.trk ? "T" : "");
     return b;
 }
 
 std::string TagSpd(const Selections& s)
 {
     char b[16];
-    if (s.ias) { sprintf_s(b, "%d", *s.ias); return b; }
-    if (s.mach) { sprintf_s(b, "M%02d", static_cast<int>(std::lround(*s.mach * 100))); return b; }
+    if (s.ias) { _snprintf_s(b, _TRUNCATE, "%d", *s.ias); return b; }
+    if (s.mach) { _snprintf_s(b, _TRUNCATE, "M%02d", static_cast<int>(std::lround(*s.mach * 100))); return b; }
     return "---";
 }
 
@@ -246,7 +246,7 @@ std::string TagVs(const Selections& s)
     int h = static_cast<int>(std::lround(*s.vs / 100.0));
     if (h == 0) return "0";
     char b[16];
-    sprintf_s(b, "%+d", h);
+    _snprintf_s(b, _TRUNCATE, "%+d", h);
     return b;
 }
 
@@ -260,7 +260,7 @@ std::string TagCurMach(const Selections& s)
 {
     if (!s.curMach) return "---";
     char b[16];
-    sprintf_s(b, "M%02d", static_cast<int>(std::lround(*s.curMach * 100)));
+    _snprintf_s(b, _TRUNCATE, "M%02d", static_cast<int>(std::lround(*s.curMach * 100)));
     return b;
 }
 
@@ -269,8 +269,8 @@ std::string TagBaro(const Selections& s, BaroDisplay d)
     if (!s.baro) return "---";
     bool inHg = d == BaroDisplay::InHg || (d == BaroDisplay::Pilot && s.baroUnit == "inHg");
     char b[16];
-    if (inHg) sprintf_s(b, "%.2f", *s.baro / 33.8639);
-    else sprintf_s(b, "%d", HpaShown(*s.baro));
+    if (inHg) _snprintf_s(b, _TRUNCATE, "%.2f", *s.baro / 33.8639);
+    else _snprintf_s(b, _TRUNCATE, "%d", HpaShown(*s.baro));
     return b;
 }
 

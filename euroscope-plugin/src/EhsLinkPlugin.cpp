@@ -42,7 +42,7 @@ using namespace EuroScopePlugIn;
 namespace
 {
 const char* kName = "EHS Link";
-const char* kVersion = "0.2.0";
+const char* kVersion = "0.2.1";
 
 enum TagItems { kTagAlt = 1, kTagHdg, kTagSpd, kTagVs, kTagSummary, kTagStatus, kTagBaro, kTagCurIas, kTagCurMach };
 
@@ -100,12 +100,27 @@ public:
 
     // ------------------------------------------------------------------ TAG items
 
-    void OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int /*TagData*/,
-                      char sItemString[16], int* pColorCode, COLORREF* pRGB, double* /*pFontSize*/) override
+    // EuroScope callbacks: an exception escaping into EuroScope would crash it, so each one is
+    // wrapped and a failure only skips that update.
+    void OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData,
+                      char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize) override
+    {
+        try { GetTagItem(FlightPlan, RadarTarget, ItemCode, sItemString, pColorCode, pRGB); }
+        catch (...) {}
+    }
+
+    void OnTimer(int /*Counter*/) override
+    {
+        try { Tick(); }
+        catch (...) {}
+    }
+
+    void GetTagItem(CFlightPlan& FlightPlan, CRadarTarget& RadarTarget, int ItemCode,
+                    char sItemString[16], int* pColorCode, COLORREF* pRGB)
     {
         const char* cs = RadarTarget.IsValid() ? RadarTarget.GetCallsign()
                        : FlightPlan.IsValid() ? FlightPlan.GetCallsign() : nullptr;
-        if (!cs) return;
+        if (!cs || !*cs) return;
         auto data = Data(cs);
         if (!data)
         {
@@ -168,13 +183,17 @@ public:
     void OnNewMetarReceived(const char* sStation, const char* sFullMetar) override
     {
         if (!sStation || !sFullMetar) return;
-        auto q = ehs::ParseMetarQnh(sFullMetar);
-        if (q) m_metarQnh[sStation] = *q;
+        try
+        {
+            auto q = ehs::ParseMetarQnh(sFullMetar);
+            if (q) m_metarQnh[sStation] = *q;
+        }
+        catch (...) {}
     }
 
     // ------------------------------------------------------------------ once a second
 
-    void OnTimer(int /*Counter*/) override
+    void Tick()
     {
         FlushStatusMessages();
         m_store.PurgeOlderThan(kStaleMs * 4);
@@ -192,7 +211,9 @@ public:
 
         for (CRadarTarget rt = RadarTargetSelectFirst(); rt.IsValid(); rt = RadarTargetSelectNext(rt))
         {
-            std::string cs = rt.GetCallsign();
+            const char* rcs = rt.GetCallsign();
+            if (!rcs || !*rcs) continue;
+            std::string cs = rcs;
             auto data = Data(cs);
             if (!data) continue;
 
@@ -243,6 +264,13 @@ public:
 
     bool OnCompileCommand(const char* sCommandLine) override
     {
+        if (!sCommandLine) return false;
+        try { return CompileCommand(sCommandLine); }
+        catch (...) { return false; }
+    }
+
+    bool CompileCommand(const char* sCommandLine)
+    {
         std::istringstream in(sCommandLine);
         std::string cmd, sub, arg;
         in >> cmd;
@@ -254,8 +282,8 @@ public:
 
         if (sub.empty())
         {
-            char buf[400];
-            sprintf_s(buf, "%s to %s, listening for %u aircraft in range; %u sending data, %u filed CODE/%s...; colours match %s, near %s, mismatch %s; notify %s; sound %s; grace %d s; "
+            char buf[600];
+            _snprintf_s(buf, _TRUNCATE, "%s to %s, listening for %u aircraft in range; %u sending data, %u filed CODE/%s...; colours match %s, near %s, mismatch %s; notify %s; sound %s; grace %d s; "
                            "near if within: alt %d ft, hdg %d, spd %d kt, M%.2f, V/S %d fpm, QNH %d hPa / %.2f inHg.",
                       m_mqtt.IsConnected() ? "Connected" : "Not connected",
                       m_mqtt.IsConnected() ? m_mqtt.CurrentBroker().c_str() : ehs::FormatBrokerList(m_brokers).c_str(),
@@ -383,28 +411,45 @@ private:
     void UpdateList()   // main thread, once a second
     {
         if (!m_list.IsValid()) return;
+        // Current IAS/Mach change almost every update; redrawing rows for them alone made the
+        // list churn (remove + add) every second per aircraft. They now refresh at most every
+        // kCurSpeedRefreshMs; selections and colours still redraw immediately.
+        constexpr uint64_t kCurSpeedRefreshMs = 10000;
+        uint64_t tick = GetTickCount64();
+        bool curSpeedDue = tick - m_lastCurSpeedRefresh >= kCurSpeedRefreshMs;
+        if (curSpeedDue) m_lastCurSpeedRefresh = tick;
+
         std::map<std::string, std::string> now;   // callsign -> what the row currently shows
         for (CRadarTarget rt = RadarTargetSelectFirst(); rt.IsValid(); rt = RadarTargetSelectNext(rt))
         {
-            std::string cs = rt.GetCallsign();
+            const char* rcs = rt.GetCallsign();
+            if (!rcs || !*rcs) continue;
+            std::string cs = rcs;
             CFlightPlan fp = rt.GetCorrelatedFlightPlan();
             if (!fp.IsValid()) continue;
             auto data = Data(cs);
             if (!data && !IsFiled(fp)) continue;
 
             std::string key = RowKey(cs, data ? &*data : nullptr);
-            now[cs] = key;
+            std::string curKey = data ? ehs::TagCurIas(*data) + "|" + ehs::TagCurMach(*data) : "";
             auto old = m_inList.find(cs);
             if (old == m_inList.end())
+            {
                 m_list.AddFpToTheList(fp);
-            else if (old->second != key)
+                m_curShown[cs] = curKey;
+            }
+            else if (old->second != key || (curSpeedDue && m_curShown[cs] != curKey))
             {
                 // ES only redraws a list row when the flight plan changes, so EHS updates
                 // (which aren't FP changes) need the row re-added to show.
                 m_list.RemoveFpFromTheList(fp);
                 m_list.AddFpToTheList(fp);
+                m_curShown[cs] = curKey;
             }
+            now[cs] = key;
         }
+        for (auto it = m_curShown.begin(); it != m_curShown.end();)
+            it = now.count(it->first) ? std::next(it) : m_curShown.erase(it);
         for (auto& kv : m_inList)
         {
             if (now.count(kv.first)) continue;
@@ -419,7 +464,7 @@ private:
     {
         if (!d) return "filed";
         std::string k = ehs::TagAlt(*d) + "|" + ehs::TagHdg(*d) + "|" + ehs::TagSpd(*d) + "|" + ehs::TagVs(*d) +
-                        "|" + ehs::TagBaro(*d, m_baroDisplay) + "|" + ehs::TagCurIas(*d) + "|" + ehs::TagCurMach(*d);
+                        "|" + ehs::TagBaro(*d, m_baroDisplay);   // current IAS/Mach: see UpdateList
         if (!d->verified) k += "|~";
         if (m_positionBad.count(cs)) return k + "|pos";
         auto it = m_alerts.find(cs);
@@ -488,7 +533,9 @@ private:
     // Network thread.
     void OnMessage(const std::string& topic, const std::string& payload)
     {
-        std::string cs = topic.substr(strlen(ehs::kTopicRoot));
+        const size_t rootLen = strlen(ehs::kTopicRoot);
+        if (topic.size() <= rootLen || topic.compare(0, rootLen, ehs::kTopicRoot) != 0) return;
+        std::string cs = topic.substr(rootLen);
         if (payload.empty()) { m_store.Remove(cs); return; }   // pilot disconnected
         ehs::Selections s;
         if (!ehs::ParsePayload(payload, s) || s.callsign != cs) return;
@@ -602,6 +649,8 @@ private:
     std::set<std::string> m_positionBad;                   // main thread only
     CFlightPlanList m_list;
     std::map<std::string, std::string> m_inList;           // main thread only: callsign -> row key
+    std::map<std::string, std::string> m_curShown;         // main thread only: current IAS/Mach last drawn
+    uint64_t m_lastCurSpeedRefresh = 0;
     std::set<std::string> m_topics;                        // main thread only: topics requested
 
     std::mutex m_statusLock;

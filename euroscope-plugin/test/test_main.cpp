@@ -45,6 +45,18 @@ static void UnitTests()
     CHECK(!ParsePayload(R"({"v":2,"cs":"X"})", s));
     CHECK(!ParsePayload("garbage", s));
     CHECK(!ParsePayload("", s));
+    // 0.2.1: absurd values (broken profile, overflow) are dropped, never formatted
+    {
+        Selections g;
+        CHECK(ParsePayload(R"({"v":1,"cs":"BAD1","alt":1e300,"hdg":-5,"ias":12345,"mach":1e40,"vs":99999,"baro":1e30,"cias":-1,"cmach":1e300,"lat":500,"lon":0})", g));
+        CHECK(!g.alt && !g.hdg && !g.ias && !g.mach && !g.vs && !g.baro && !g.curIas && !g.curMach && !g.hasPos);
+        CHECK(TagSpd(g) == "---" && TagBaro(g, BaroDisplay::InHg) == "---");
+        Selections h; h.mach = 1e40; h.baro = 1e30; h.baroUnit = "inHg";   // formatting itself must not abort either
+        CHECK(!TagSpd(h).empty() && !TagBaro(h, BaroDisplay::Pilot).empty());
+        Assigned ha; ha.baroRef = 1013.25;
+        CHECK(!Describe(kBaro, h, ha).empty() && !Describe(kSpd, h, ha).empty());
+        CHECK(!ParsePayload(R"({"v":1,"cs":"WAYTOOLONGCALLSIGN"})", g));
+    }
 
     CHECK(TagAlt(s) == "240" && TagHdg(s) == "270" && TagSpd(s) == "M78" && TagVs(s) == "---");
     CHECK(TagSummary(s) == "240 270 M78");

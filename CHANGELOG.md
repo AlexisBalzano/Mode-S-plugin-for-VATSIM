@@ -5,6 +5,25 @@ All notable changes to EHS Link. Versions follow `major.minor.patch`.
 Aircraft profiles are versioned separately (`[Update] version` in `profiles.ini`) and reach
 pilots automatically at every sim start, so new or fixed aircraft don't need a new release.
 
+## 0.2.1 — 2026-11-18
+
+**Who needs to update:** controllers (`EhsLink.dll`). Pilots can stay on 0.2.0.
+
+### Controllers
+- **Stability:** a controller's EuroScope crashed some time after loading EHS Link (busy setup
+  with many plugins). The plugin is now hardened against that kind of crash:
+  - the EHS Link list no longer re-adds every row each second because current IAS/Mach
+    changed; those columns refresh every 10 s, selections and colours still update at once;
+  - out-of-range values in pilot data are ignored instead of being formatted;
+  - text formatting truncates instead of aborting, incoming messages are checked before use,
+    and no error in the plugin or its network thread can propagate into EuroScope.
+
+### Aircraft (profiles, automatic — no download needed)
+- Verified in MSFS 2024: iniBuilds A320neo V2 / A321neo / A330 and A310, Asobo 737 MAX and
+  747-8, ATR, FBW A32NX, PMDG 777, Bluebird 757, 787, iniBuilds A350, FSS E-Jets.
+- A310 heading now matches the window (was 1° high); default 737 MAX shows knots when flying
+  Mach (the aircraft doesn't expose Mach mode).
+
 ## 0.2.0 — 2026-11-16
 
 **Who needs to update:** everyone (pilots: both files; controllers: `EhsLink.dll`).

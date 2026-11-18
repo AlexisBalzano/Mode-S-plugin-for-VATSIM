@@ -51,7 +51,7 @@ int main(int argc, char** argv)
         CHECK(FindProfile(s, "learjet 35a flysimware|x")->name == "Learjet 35A (draft)");
         CHECK(FindProfile(s, "tbm 930 asobo|x")->alt == "(A:AUTOPILOT ALTITUDE LOCK VAR:1, feet)");   // fallback reads slot :1
         CHECK(FindProfile(s, "c750 - livery 1|c:\\...\\onestore\\msfsffx-c750\\simobjects\\airplanes\\ce750\\aircraft.cfg")->name == "Citation X (FlightFX)");
-        CHECK(FindProfile(s, "e-jets e175|c:\\...\\community\\fss-aircraft-e175\\x")->name == "FSS E-Jets (draft)");
+        CHECK(FindProfile(s, "e-jets e175|c:\\...\\community\\fss-aircraft-e175\\x")->name == "FSS E-Jets");
         CHECK(FindProfile(s, "cessna 152 asobo|x")->name == "Standard");
         CHECK(!FindProfile(s, "fenix a320 air france|x")->verified);
         CHECK(FindProfile(s, "tfdi design md-11 pw|c:\\...\\community\\tfdidesign-aircraft-md11\\x")->name == "TFDi MD-11");

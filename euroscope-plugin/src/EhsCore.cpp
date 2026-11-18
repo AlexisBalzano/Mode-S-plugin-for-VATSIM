@@ -95,11 +95,22 @@ bool ParseFlatObject(const std::string& s, std::map<std::string, JsonValue>& out
     }
 }
 
-std::optional<int> OptInt(const std::map<std::string, JsonValue>& m, const char* key)
+// Numbers outside a sane range (garbage from a broken profile, NaN, inf) are treated as absent,
+// so nothing downstream ever formats or compares an absurd value.
+std::optional<double> OptNum(const std::map<std::string, JsonValue>& m, const char* key, double lo, double hi)
 {
     auto it = m.find(key);
     if (it == m.end() || it->second.kind != JsonValue::Number) return std::nullopt;
-    return static_cast<int>(it->second.num >= 0 ? it->second.num + 0.5 : it->second.num - 0.5);
+    double v = it->second.num;
+    if (!(v >= lo && v <= hi)) return std::nullopt;   // also false for NaN
+    return v;
+}
+
+std::optional<int> OptInt(const std::map<std::string, JsonValue>& m, const char* key, double lo, double hi)
+{
+    auto v = OptNum(m, key, lo, hi);
+    if (!v) return std::nullopt;
+    return static_cast<int>(*v >= 0 ? *v + 0.5 : *v - 0.5);
 }
 }   // namespace
 
@@ -115,23 +126,21 @@ bool ParsePayload(const std::string& json, Selections& out)
     out = Selections{};
     out.callsign = cs->second.str;
     if (auto it = m.find("src"); it != m.end() && it->second.kind == JsonValue::String) out.source = it->second.str;
-    if (auto it = m.find("t"); it != m.end() && it->second.kind == JsonValue::Number) out.sentUnix = static_cast<int64_t>(it->second.num);
-    auto lat = m.find("lat"), lon = m.find("lon");
-    if (lat != m.end() && lon != m.end() && lat->second.kind == JsonValue::Number && lon->second.kind == JsonValue::Number)
-    {
-        out.lat = lat->second.num; out.lon = lon->second.num; out.hasPos = true;
-    }
-    out.alt = OptInt(m, "alt");
-    out.hdg = OptInt(m, "hdg");
-    out.ias = OptInt(m, "ias");
-    out.vs = OptInt(m, "vs");
-    if (auto it = m.find("mach"); it != m.end() && it->second.kind == JsonValue::Number) out.mach = it->second.num;
+    if (out.callsign.size() > 16) return false;
+    if (auto t = OptNum(m, "t", 0, 4.0e9)) out.sentUnix = static_cast<int64_t>(*t);
+    auto lat = OptNum(m, "lat", -90, 90), lon = OptNum(m, "lon", -180, 180);
+    if (lat && lon) { out.lat = *lat; out.lon = *lon; out.hasPos = true; }
+    out.alt = OptInt(m, "alt", -2000, 99000);
+    out.hdg = OptInt(m, "hdg", 0, 360);
+    out.ias = OptInt(m, "ias", 0, 999);
+    out.vs = OptInt(m, "vs", -15000, 15000);
+    out.mach = OptNum(m, "mach", 0, 5);
     if (auto it = m.find("trk"); it != m.end() && it->second.kind == JsonValue::Bool) out.trk = it->second.b;
-    if (auto it = m.find("baro"); it != m.end() && it->second.kind == JsonValue::Number) out.baro = it->second.num;
-    if (auto it = m.find("baroUnit"); it != m.end() && it->second.kind == JsonValue::String) out.baroUnit = it->second.str;
+    out.baro = OptNum(m, "baro", 800, 1200);
+    if (auto it = m.find("baroUnit"); it != m.end() && it->second.kind == JsonValue::String && it->second.str.size() <= 8) out.baroUnit = it->second.str;
     if (auto it = m.find("ver"); it != m.end() && it->second.kind == JsonValue::Bool) out.verified = it->second.b;
-    out.curIas = OptInt(m, "cias");
-    if (auto it = m.find("cmach"); it != m.end() && it->second.kind == JsonValue::Number) out.curMach = it->second.num;
+    out.curIas = OptInt(m, "cias", 0, 999);
+    out.curMach = OptNum(m, "cmach", 0, 5);
     return true;
 }
 
@@ -426,13 +435,25 @@ bool MqttSubscriber::SleepInterruptible(int ms)
 
 void MqttSubscriber::Run()
 {
+    // An exception escaping this thread would terminate EuroScope, so nothing may escape:
+    // a failed session is simply retried.
     WSADATA wsa;
     WSAStartup(MAKEWORD(2, 2), &wsa);
     size_t index = 0;
     while (!m_stop && !m_brokers.empty())
     {
-        const Broker& b = m_brokers[index % m_brokers.size()];
-        bool hadSession = Session(b);
+        bool hadSession = false;
+        try
+        {
+            const Broker& b = m_brokers[index % m_brokers.size()];
+            hadSession = Session(b);
+        }
+        catch (...)
+        {
+            uintptr_t mine = m_socket.exchange(~uintptr_t(0));
+            if (mine != ~uintptr_t(0)) closesocket(static_cast<SOCKET>(mine));
+            m_connected = false;
+        }
         if (m_stop) break;
         if (!hadSession) ++index;   // couldn't connect: try the next broker
         SleepInterruptible(hadSession ? 2000 : 5000);
@@ -525,10 +546,11 @@ bool MqttSubscriber::Session(const Broker& b)
             size_t tlen = (static_cast<unsigned char>(buf[0]) << 8) | static_cast<unsigned char>(buf[1]);
             size_t pos = 2 + tlen;
             if (((header >> 1) & 3) > 0) pos += 2;
-            if (pos > len) continue;
+            if (pos > len || 2 + tlen > len) continue;
             std::string topic = buf.substr(2, tlen);
             std::string payload = buf.substr(pos);
-            if (m_onMessage) m_onMessage(topic, payload);
+            try { if (m_onMessage) m_onMessage(topic, payload); }
+            catch (...) {}   // one bad message must never take the connection (or EuroScope) down
         }
     }
     bool wasStopping = m_stop;
