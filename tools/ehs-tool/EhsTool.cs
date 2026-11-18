@@ -155,6 +155,9 @@ static class Program
     {
         @"%LOCALAPPDATA%\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalState\packages\ehslink-module\work\snapshot.txt",
         @"%APPDATA%\Microsoft Flight Simulator\Packages\ehslink-module\work\snapshot.txt",
+        // MSFS 2024 runs our 2020-SDK module under WASM\MSFS2020 (confirmed on MS Store 2024)
+        @"%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalState\WASM\MSFS2020\ehslink-module\work\snapshot.txt",
+        @"%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2020\ehslink-module\work\snapshot.txt",
         @"%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalState\WASM\MSFS2024\ehslink-module\work\snapshot.txt",
         @"%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2024\ehslink-module\work\snapshot.txt",
     };

@@ -58,8 +58,9 @@ panel screenshot (below) is all it takes to verify it.
    `snapshot.txt` in its work folder:
    - MSFS 2020, MS Store: `%LOCALAPPDATA%\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalState\packages\ehslink-module\work\`
    - MSFS 2020, Steam: `%APPDATA%\Microsoft Flight Simulator\Packages\ehslink-module\work\`
-   - MSFS 2024, MS Store: usually `%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalState\WASM\MSFS2024\ehslink-module\work\`
-   - MSFS 2024, Steam: usually `%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2024\ehslink-module\work\`
+   - MSFS 2024, MS Store: `%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalState\WASM\MSFS2020\ehslink-module\work\`
+     (yes, "MSFS2020": 2024 runs the module in its 2020 compatibility area)
+   - MSFS 2024, Steam: probably `%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2020\ehslink-module\work\`
    - If it isn't there, search your PC for `snapshot.txt`.
 3. Open a GitHub issue with the aircraft name, a screenshot of the autopilot panel, and that
    file attached. Maintainers can also trigger a snapshot with `EhsTool snapshot 12300 123 234`.

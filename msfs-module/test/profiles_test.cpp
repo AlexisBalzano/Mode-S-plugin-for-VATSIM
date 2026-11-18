@@ -43,7 +43,7 @@ int main(int argc, char** argv)
         CHECK(FindProfile(s, "some other 787-9 mod|x")->name == "Boeing 787 (draft)");
         CHECK(FindProfile(s, "lvfr airbus a319 delta|c:\\...\\community\\lvfr-airbus-a319-ceo\\x")->name == "LVFR A318/A319 (draft)");
         CHECK(FindProfile(s, "a330-300 inibuilds|c:\\...\\community\\inibuilds-aircraft-a330-300\\x")->name == "iniBuilds Airbus family (draft)");
-        CHECK(FindProfile(s, "a310-300|c:\\...\\community\\inibuilds-aircraft-a310\\x")->name == "iniBuilds A310 (draft)");     // not the family
+        CHECK(FindProfile(s, "a310-300|c:\\...\\community\\inibuilds-aircraft-a310\\x")->name == "iniBuilds A310");     // not the family
         CHECK(FindProfile(s, "airbus a350-900 afr la28|c:\\...\\community\\inibuilds-aircraft-a350\\x")->name == "A350 (iniBuilds)");   // verified wins
         CHECK(FindProfile(s, "fslabs a321neo|c:\\...\\community\\fsl-aircraft-a321\\x")->name == "FSLabs A32x (draft)");
         CHECK(FindProfile(s, "cessna citation longitude asobo|x")->name == "Citation Longitude (draft)");
