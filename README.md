@@ -62,6 +62,10 @@ panel screenshot (below) is all it takes to verify it.
      (yes, "MSFS2020": 2024 runs the module in its 2020 compatibility area)
    - MSFS 2024, Steam: probably `%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2020\ehslink-module\work\`
    - If it isn't there, search your PC for `snapshot.txt`.
+
+   Nothing saved, or the aircraft won't take those values (e.g. 1000 ft altitude steps)? Keep
+   them as close as you can and **set the transponder to 1230** for about 10 seconds: that
+   always saves a snapshot, whatever the aircraft. Do it before connecting to VATSIM.
 3. Open a GitHub issue with the aircraft name, a screenshot of the autopilot panel, and that
    file attached. Maintainers can also trigger a snapshot with `EhsTool snapshot 12300 123 234`.
 

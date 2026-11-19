@@ -195,11 +195,15 @@
         <li>Load the aircraft, power the autopilot panel, and dial <strong>ALT 12300</strong>, <strong>HDG 123</strong>,
           <strong>SPD 234</strong> (plus any V/S the aircraft allows).</li>
         <li>Wait 10 seconds. EHS Link saves a file called <code>snapshot.txt</code>.
+          Nothing saved, or the aircraft won't take those values? Keep them as close as you can and
+          <strong>set the transponder to 1230</strong> for 10 seconds: that always saves a snapshot
+          (do it before connecting to VATSIM).
           <details><summary>Where is snapshot.txt?</summary>
             <p>MSFS 2020, MS Store: <span class="path">%LOCALAPPDATA%\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalState\packages\ehslink-module\work</span><br>
                MSFS 2020, Steam: <span class="path">%APPDATA%\Microsoft Flight Simulator\Packages\ehslink-module\work</span><br>
                MSFS 2024, MS Store: <span class="path">%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalState\WASM\MSFS2020\ehslink-module\work</span>
                <span class="muted">(yes, "MSFS2020")</span><br>
+               MSFS 2024, Steam: probably <span class="path">%APPDATA%\Microsoft Flight Simulator 2024\WASM\MSFS2020\ehslink-module\work</span><br>
                Not there? Search your PC for <code>snapshot.txt</code>.</p>
           </details>
         </li>

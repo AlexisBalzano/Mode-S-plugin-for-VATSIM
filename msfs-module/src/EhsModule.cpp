@@ -210,11 +210,33 @@ void WriteSnapshot(const char* reason)
     std::fprintf(stdout, "[EHS Link] snapshot written (%s, %d L:vars)\n", reason, count);
 }
 
-// Cheap check every ~5 s: has the pilot dialled the learn values?
+// A heading knob that shows 123: rounded (122.5..123.5) or truncated like the A310, whose
+// continuous dial holds e.g. 123.55 while the window shows 123.
+bool IsLearnHeading(double v) { return v >= 122.5 && v < 124.0; }
+
+// Squawk 1230 also asks for a snapshot: works in any aircraft, even where 12300 can't be
+// dialled or the autopilot values are hidden. Edge-triggered, so squawking something else and
+// then 1230 again takes a fresh snapshot.
+bool g_squawkWasLearn = false;
+
+bool IsLearnSquawk()
+{
+    double v;
+    if (!Eval("(A:TRANSPONDER CODE:1, number)", v)) return false;
+    return std::fabs(v - 1230) < 0.5 || std::fabs(v - 0x1230) < 0.5;   // decimal or BCD16
+}
+
+// Cheap check every ~5 s: has the pilot dialled the learn values or squawked 1230?
 void CheckLearnTrigger()
 {
-    if (g_learnSnapshotTaken || ++g_learnTicks < 30) return;
+    if (++g_learnTicks < 30) return;
     g_learnTicks = 0;
+
+    bool squawk = IsLearnSquawk();
+    if (squawk && !g_squawkWasLearn) WriteSnapshot("squawk 1230");
+    g_squawkWasLearn = squawk;
+
+    if (g_learnSnapshotTaken) return;
     bool alt = false, hdg = false;
     for (ID id = 0; id < 100000 && !(alt && hdg); ++id)
     {
@@ -222,12 +244,12 @@ void CheckLearnTrigger()
         if (!name) break;
         double v = get_named_variable_value(id);
         alt |= std::fabs(v - 12300) < 0.5;
-        hdg |= std::fabs(v - 123) < 0.5;
+        hdg |= IsLearnHeading(v);
     }
     double v;
     if (!alt && Eval("(A:AUTOPILOT ALTITUDE LOCK VAR:3, feet)", v)) alt = std::fabs(v - 12300) < 1;
     if (!alt && Eval("(A:AUTOPILOT ALTITUDE LOCK VAR:1, feet)", v)) alt = std::fabs(v - 12300) < 1;   // GA / Working Title
-    if (!hdg && Eval("(A:AUTOPILOT HEADING LOCK DIR, degrees)", v)) hdg = std::fabs(v - 123) < 0.5;
+    if (!hdg && Eval("(A:AUTOPILOT HEADING LOCK DIR, degrees)", v)) hdg = IsLearnHeading(v);
     if (alt && hdg) { g_learnSnapshotTaken = true; WriteSnapshot("learn values dialled"); }
 }
 

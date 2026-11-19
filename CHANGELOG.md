@@ -7,7 +7,14 @@ pilots automatically at every sim start, so new or fixed aircraft don't need a n
 
 ## 0.2.1 — 2026-11-18
 
-**Who needs to update:** controllers (`EhsLink.dll`). Pilots can stay on 0.2.0.
+**Who needs to update:** controllers (`EhsLink.dll`), and pilots who want to send aircraft
+snapshots (`Community\ehslink-module`). The vPilot plugin is unchanged.
+
+### Pilots
+- **Snapshots are more reliable:** the automatic snapshot (ALT 12300 + HDG 123) now also
+  triggers on aircraft whose heading knob turns smoothly (the A310 holds 123.55 for "123").
+- **Squawk 1230 saves a snapshot** in any aircraft, even when 12300 can't be dialled or the
+  autopilot values aren't readable. Squawk something else and 1230 again for a fresh one.
 
 ### Controllers
 - **Stability:** a controller's EuroScope crashed some time after loading EHS Link (busy setup
