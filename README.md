@@ -40,9 +40,49 @@ not study-level add-ons with their own FCU/MCP logic; those need a profile. Prof
 `verified = yes` have been checked against the real cockpit. New profiles are welcome as pull
 requests (see the comments at the top of `profiles.ini`).
 
-| Verified | Draft (unverified) |
-|---|---|
-| PMDG 777 & 737 (all variants), FlyByWire A32NX & A380X, Headwind A339, Aerosoft A346, iniBuilds A350, Asobo A320neo, ATR 42/72-600, Citation X, Bluebird 757, TFDi MD-11, Boeing 787-8 (Kuro), 787-9 (HorizonSim) & 787-10 (Asobo) | Fenix A319/A320/A321, FSLabs A319/A320/A321, iniBuilds A320neo V2/A321/A330/A340/A380/Beluga XL, A300 & A310, FSS E-Jets, Boeing 747-8, Leonardo MD-82, iFly 737 MAX, LVFR A318/A319, Citation CJ4 & Longitude, Synaptic A22X, Aerosoft CRJ, Just Flight BAe 146, F28 & F100, Learjet 35A |
+<!-- aircraft-list:start -->
+| Aircraft | Status | MSFS 2020 | MSFS 2024 |
+|---|---|:-:|:-:|
+| A320neo (Asobo) | Verified | ✓ |  |
+| A320neo V2 / A321neo / A330 (iniBuilds, MSFS 2024 defaults) | Verified |  | ✓ |
+| A32NX (FlyByWire) | Verified | ✓ | ✓ |
+| A339 (Headwind) | Verified | ✓ |  |
+| A346 (Aerosoft) | Verified | ✓ |  |
+| A350 (iniBuilds) | Verified | ✓ | ✓ |
+| A380X (FlyByWire) | Verified | ✓ |  |
+| ATR 42/72-600 | Verified | ✓ | ✓ |
+| Bluebird 757 | Verified | ✓ | ✓ |
+| Boeing 737 MAX (Asobo) | Verified |  | ✓ |
+| Boeing 747-8 | Verified |  | ✓ |
+| Boeing 787 (HorizonSim / Asobo / Kuro) | Verified | ✓ | ✓ |
+| Citation CJ4 | Verified |  | ✓ |
+| Citation X (FlightFX) | Verified | ✓ |  |
+| Fenix A319/A320/A321 | Verified |  | ✓ |
+| FSLabs A32x | Verified |  | ✓ |
+| FSS E-Jets | Verified |  | ✓ |
+| iniBuilds A310 | Verified |  | ✓ |
+| PMDG 737 | Verified | ✓ |  |
+| PMDG 777 | Verified | ✓ | ✓ |
+| TFDi MD-11 | Verified | ✓ |  |
+| Aerosoft CRJ | Draft |  |  |
+| Boeing 787 | Draft |  |  |
+| Citation Longitude | Draft |  |  |
+| iFly 737 MAX | Draft |  |  |
+| iniBuilds A300 | Draft |  |  |
+| iniBuilds Airbus family | Draft |  |  |
+| Just Flight BAe 146 | Draft |  |  |
+| Just Flight F100 | Draft |  |  |
+| Just Flight F28 | Draft |  |  |
+| Learjet 35A | Draft |  |  |
+| Leonardo MD-82 | Draft |  |  |
+| LVFR A318/A319 | Draft |  |  |
+| Synaptic A22X | Draft |  |  |
+
+21 verified, 13 draft. A tick means checked in that simulator's cockpit.
+<!-- aircraft-list:end -->
+
+The [website](https://cityz-n.github.io/Mode-S-plugin-for-VATSIM/#aircraft) always shows the
+current list (profiles update between releases).
 
 Draft profiles were built from the community presets in **MobiFlight's HubHop** database
 ([hubhop.mobiflight.com](https://hubhop.mobiflight.com)) and from the WinWing / MobiFlight FCU
@@ -162,7 +202,8 @@ Commands:
    description and attach the zip.
 
 Aircraft profile changes don't need a release: bump `[Update] version` in `profiles.ini`
-and push; pilots get it at their next sim start.
+and push; pilots get it at their next sim start. Run `.\update-aircraft-list.ps1` first so the
+aircraft list in this README and the website fallback match `profiles.ini`.
 
 ## Building
 

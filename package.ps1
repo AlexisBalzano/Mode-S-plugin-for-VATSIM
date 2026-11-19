@@ -13,6 +13,7 @@ if (-not (Select-String -Path (Join-Path $root "CHANGELOG.md") -Pattern "^## $([
     Write-Warning "CHANGELOG.md has no '## $Version' section: add one before publishing this release."
 }
 Write-Host "Packaging EHS Link $Version"
+& (Join-Path $root "update-aircraft-list.ps1")
 
 & (Join-Path $root "msfs-module\build.ps1")
 dotnet build (Join-Path $root "vpilot-plugin") -c Release -nologo -v q
